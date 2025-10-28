@@ -94,6 +94,11 @@ function sendMessage() {
   // Show thinking indicator
   showThinking();
 
+  // Force scroll after thinking indicator is shown
+  setTimeout(() => {
+    thinkingIndicator.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, 300);
+
   // Simulate bot response with realistic delay
   const responseDelay = Math.min(Math.max(message.length * 20, 800), 3000);
 
@@ -102,6 +107,11 @@ function sendMessage() {
     try {
       const botResponse = generateBotResponse(message);
       displayMessage(botResponse, "bot");
+
+      // Scroll to bot response after it's displayed
+      setTimeout(() => {
+        chatbox.scrollTop = chatbox.scrollHeight;
+      }, 100);
     } catch (error) {
       console.error("Error generating response:", error);
       displayMessage(
@@ -141,6 +151,7 @@ function displaySystemMessage(text) {
   // Scroll to bottom
   chatbox.scrollTop = chatbox.scrollHeight;
 }
+
 // Display message in chatbox
 function displayMessage(text, sender) {
   const messageDiv = document.createElement("div");
@@ -169,19 +180,20 @@ function displayMessage(text, sender) {
 
   chatbox.appendChild(messageDiv);
 
-  // Simple and effective scroll
-  chatbox.scrollTop = chatbox.scrollHeight;
+  // Smooth scroll to the new message
+  setTimeout(() => {
+    messageDiv.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, 100);
 }
+
 // Show thinking indicator
 function showThinking() {
   thinkingIndicator.classList.add("active");
-  chatbox.scrollTop = chatbox.scrollHeight;
 }
 
 // Hide thinking indicator
 function hideThinking() {
   thinkingIndicator.classList.remove("active");
-  chatbox.scrollTop = chatbox.scrollHeight;
 }
 
 // Get current time
