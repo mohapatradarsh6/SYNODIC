@@ -244,6 +244,8 @@ body {
   position: relative;
   z-index: 1;
   min-height: 0;
+  overflow: hidden;
+  height: 100vh;
 }
 
 /* ========================================
@@ -311,7 +313,6 @@ body {
   background: rgba(138, 99, 255, 0.2);
   transform: translateY(-2px);
 }
-
 /* ========================================
    CHATBOX / MESSAGES AREA
    ======================================== */
@@ -326,11 +327,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  position: relative;
-  z-index: 2;
-  min-height: 0;
-  scroll-behavior: smooth;
-  scroll-padding-bottom: 20px;
 }
 
 .chatbox::-webkit-scrollbar {

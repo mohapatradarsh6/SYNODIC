@@ -139,9 +139,7 @@ function displaySystemMessage(text) {
   }, 5000);
 
   // Scroll to bottom
-  setTimeout(() => {
-    chatbox.scrollTop = chatbox.scrollHeight;
-  }, 50);
+  chatbox.scrollTop = chatbox.scrollHeight;
 }
 // Display message in chatbox
 function displayMessage(text, sender) {
@@ -171,37 +169,19 @@ function displayMessage(text, sender) {
 
   chatbox.appendChild(messageDiv);
 
-  // Aggressive scroll to bottom - guaranteed to work
-  const scrollToBottom = () => {
-    chatbox.scrollTop = chatbox.scrollHeight + 1000;
-  };
-
-  scrollToBottom();
-  setTimeout(scrollToBottom, 10);
-  setTimeout(scrollToBottom, 50);
-  setTimeout(scrollToBottom, 100);
-  setTimeout(scrollToBottom, 200);
+  // Simple and effective scroll
+  chatbox.scrollTop = chatbox.scrollHeight;
 }
 // Show thinking indicator
 function showThinking() {
   thinkingIndicator.classList.add("active");
-
-  const scrollToBottom = () => {
-    chatbox.scrollTop = chatbox.scrollHeight + 1000;
-  };
-
-  setTimeout(scrollToBottom, 10);
-  setTimeout(scrollToBottom, 50);
-  setTimeout(scrollToBottom, 100);
+  chatbox.scrollTop = chatbox.scrollHeight;
 }
 
+// Hide thinking indicator
 function hideThinking() {
   thinkingIndicator.classList.remove("active");
-
-  // Scroll after hiding
-  setTimeout(() => {
-    chatbox.scrollTop = chatbox.scrollHeight + 1000;
-  }, 10);
+  chatbox.scrollTop = chatbox.scrollHeight;
 }
 
 // Get current time
