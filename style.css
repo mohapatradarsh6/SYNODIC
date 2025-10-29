@@ -948,6 +948,7 @@ body {
   cursor: pointer;
   transition: all 0.2s;
   margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .user-profile:hover {
@@ -998,6 +999,7 @@ body {
   justify-content: center;
   gap: 8px;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .logout-btn:hover {
@@ -1098,7 +1100,7 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 24px;
-  padding-bottom: 140px;
+  padding-bottom: 180px;
   max-width: 900px;
   width: 100%;
   margin: 0 auto;
@@ -1345,6 +1347,14 @@ body {
   left: 0;
   right: 0;
   z-index: 10;
+  padding-bottom: 32px;
+}
+
+/* Safe area for mobile devices */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .input-container {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
 }
 
 .input-wrapper {
@@ -1502,11 +1512,13 @@ body {
     left: 0;
     top: 0;
     height: 100vh;
+    height: 100dvh;
     transform: translateX(-100%);
     z-index: 100;
     overflow-y: auto; /* ENSURE THIS IS HERE */
     display: flex; /* ADD THIS LINE */
     flex-direction: column;
+    padding-bottom: 0;
   }
 
   .sidebar.active {
@@ -1519,9 +1531,19 @@ body {
     bottom: 0;
     background: rgba(15, 20, 35, 0.98);
     padding: 16px;
+    padding-bottom: 24px;
     margin-top: auto;
+    border-top: 1px solid rgba(138, 99, 255, 0.1);
+    z-index: 10;
   }
 }
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .sidebar-footer {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+}
+
 .mobile-menu-btn {
   display: flex;
   align-items: center;
@@ -1535,11 +1557,12 @@ body {
 
 .chatbox {
   padding: 16px;
-  padding-bottom: 120px;
+  padding-bottom: 200px;
 }
 
 .input-container {
   padding: 16px;
+  padding-bottom: 24px;
 }
 
 .sidebar-overlay {
