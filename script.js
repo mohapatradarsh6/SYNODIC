@@ -1,5 +1,345 @@
 // ========================================
-// SYNODIC AI CHATBOT - FRONTEND (NO API KEY NEEDED)
+// SYNODIC AI CHATBOT - FRONTEND WITH AUTH
+// ========================================
+
+// Backend API URL
+const API_URL =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? "http://localhost:3000/api"
+    : `${window.location.origin}/api`;
+
+// ========================================
+// AUTHENTICATION STATE
+// ========================================
+
+let currentUser = null;
+
+// Check if user is already logged in on page load
+function checkAuthStatus() {
+  const token = localStorage.getItem("synodic_token");
+  const userData = localStorage.getItem("synodic_user");
+
+  if (token && userData) {
+    try {
+      currentUser = JSON.parse(userData);
+      showApp();
+      updateUserProfile();
+      return true;
+    } catch (error) {
+      console.error("Error parsing user data:", error);
+      logout();
+    }
+  }
+  return false;
+}
+
+// Show main app (hide auth screen)
+function showApp() {
+  document.getElementById("authWrapper").style.display = "none";
+  document.getElementById("appWrapper").style.display = "flex";
+}
+
+// Show auth screen (hide main app)
+function showAuth() {
+  document.getElementById("authWrapper").style.display = "flex";
+  document.getElementById("appWrapper").style.display = "none";
+}
+
+// Update user profile display
+function updateUserProfile() {
+  if (currentUser) {
+    const userNameElement = document.getElementById("userName");
+    if (userNameElement) {
+      userNameElement.textContent = currentUser.name || currentUser.email;
+    }
+  }
+}
+
+// ========================================
+// AUTH FORM HANDLING
+// ========================================
+
+// Switch between sign in and sign up forms
+document.addEventListener("DOMContentLoaded", () => {
+  // Check if user is already logged in
+  if (!checkAuthStatus()) {
+    showAuth();
+  }
+
+  const switchToSignup = document.getElementById("switchToSignup");
+  const switchToSignin = document.getElementById("switchToSignin");
+  const signinForm = document.getElementById("signinForm");
+  const signupForm = document.getElementById("signupForm");
+
+  if (switchToSignup) {
+    switchToSignup.addEventListener("click", (e) => {
+      e.preventDefault();
+      signinForm.classList.remove("active");
+      signupForm.classList.add("active");
+    });
+  }
+
+  if (switchToSignin) {
+    switchToSignin.addEventListener("click", (e) => {
+      e.preventDefault();
+      signupForm.classList.remove("active");
+      signinForm.classList.add("active");
+    });
+  }
+
+  // Sign In Form Submission
+  const signinFormElement = document.getElementById("signinFormElement");
+  if (signinFormElement) {
+    signinFormElement.addEventListener("submit", handleSignIn);
+  }
+
+  // Sign Up Form Submission
+  const signupFormElement = document.getElementById("signupFormElement");
+  if (signupFormElement) {
+    signupFormElement.addEventListener("submit", handleSignUp);
+  }
+
+  // Google Sign In Buttons
+  const googleSigninBtn = document.getElementById("googleSigninBtn");
+  const googleSignupBtn = document.getElementById("googleSignupBtn");
+
+  if (googleSigninBtn) {
+    googleSigninBtn.addEventListener("click", handleGoogleAuth);
+  }
+
+  if (googleSignupBtn) {
+    googleSignupBtn.addEventListener("click", handleGoogleAuth);
+  }
+
+  // Logout Button
+  const logoutBtn = document.getElementById("logoutBtn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", logout);
+  }
+
+  // Initialize chat functionality
+  initializeChatApp();
+});
+
+// Handle Sign In
+async function handleSignIn(e) {
+  e.preventDefault();
+
+  const email = document.getElementById("signinEmail").value;
+  const password = document.getElementById("signinPassword").value;
+  const rememberMe = document.getElementById("rememberMe").checked;
+
+  if (!email || !password) {
+    showAuthError("Please fill in all fields");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/auth/signin`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, password, rememberMe }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Sign in failed");
+    }
+
+    // Store user data and token
+    localStorage.setItem("synodic_token", data.token);
+    localStorage.setItem("synodic_user", JSON.stringify(data.user));
+
+    currentUser = data.user;
+
+    // Show success message
+    showAuthSuccess("Welcome back! Loading your workspace...");
+
+    // Transition to app
+    setTimeout(() => {
+      showApp();
+      updateUserProfile();
+    }, 1000);
+  } catch (error) {
+    console.error("Sign in error:", error);
+    showAuthError(error.message);
+  }
+}
+
+// Handle Sign Up
+async function handleSignUp(e) {
+  e.preventDefault();
+
+  const name = document.getElementById("signupName").value;
+  const email = document.getElementById("signupEmail").value;
+  const password = document.getElementById("signupPassword").value;
+  const confirmPassword = document.getElementById(
+    "signupConfirmPassword"
+  ).value;
+  const agreeTerms = document.getElementById("agreeTerms").checked;
+
+  // Validation
+  if (!name || !email || !password || !confirmPassword) {
+    showAuthError("Please fill in all fields");
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    showAuthError("Passwords do not match");
+    return;
+  }
+
+  if (password.length < 6) {
+    showAuthError("Password must be at least 6 characters long");
+    return;
+  }
+
+  if (!agreeTerms) {
+    showAuthError("Please agree to the Terms of Service");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/auth/signup`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name, email, password }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Sign up failed");
+    }
+
+    // Store user data and token
+    localStorage.setItem("synodic_token", data.token);
+    localStorage.setItem("synodic_user", JSON.stringify(data.user));
+
+    currentUser = data.user;
+
+    // Show success message
+    showAuthSuccess("Account created! Welcome to Synodic AI...");
+
+    // Transition to app
+    setTimeout(() => {
+      showApp();
+      updateUserProfile();
+    }, 1000);
+  } catch (error) {
+    console.error("Sign up error:", error);
+    showAuthError(error.message);
+  }
+}
+
+// Handle Google Authentication
+async function handleGoogleAuth() {
+  showAuthError(
+    "Google Sign-In will be available soon! For now, please use email/password."
+  );
+
+  // In a real implementation, you would:
+  // 1. Initialize Google OAuth
+  // 2. Get the Google token
+  // 3. Send it to your backend
+  // 4. Backend verifies with Google and creates/logs in user
+}
+
+// Show auth error message
+function showAuthError(message) {
+  // Remove existing error if any
+  const existingError = document.querySelector(".auth-error");
+  if (existingError) {
+    existingError.remove();
+  }
+
+  const errorDiv = document.createElement("div");
+  errorDiv.className = "auth-error";
+  errorDiv.style.cssText = `
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #f87171;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    animation: shake 0.5s ease-in-out;
+  `;
+  errorDiv.textContent = message;
+
+  const activeForm = document.querySelector(".auth-form.active");
+  if (activeForm) {
+    activeForm.insertBefore(errorDiv, activeForm.querySelector("form"));
+  }
+
+  setTimeout(() => {
+    errorDiv.style.animation = "fadeOut 0.3s ease-out";
+    setTimeout(() => errorDiv.remove(), 300);
+  }, 5000);
+}
+
+// Show auth success message
+function showAuthSuccess(message) {
+  const existingError = document.querySelector(".auth-error");
+  if (existingError) {
+    existingError.remove();
+  }
+
+  const successDiv = document.createElement("div");
+  successDiv.className = "auth-success";
+  successDiv.style.cssText = `
+    background: rgba(34, 197, 94, 0.15);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    color: #4ade80;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    animation: fadeIn 0.3s ease-out;
+  `;
+  successDiv.textContent = message;
+
+  const activeForm = document.querySelector(".auth-form.active");
+  if (activeForm) {
+    activeForm.insertBefore(successDiv, activeForm.querySelector("form"));
+  }
+}
+
+// Logout function
+function logout() {
+  if (confirm("Are you sure you want to log out?")) {
+    localStorage.removeItem("synodic_token");
+    localStorage.removeItem("synodic_user");
+    currentUser = null;
+    conversationHistory = [];
+
+    // Reset chat
+    chatbox.innerHTML = `
+      <div class="welcome-message">
+        <div class="welcome-icon">🌙</div>
+        <h2>Welcome to Synodic AI</h2>
+        <p>Your cosmic companion for intelligent conversations</p>
+      </div>
+    `;
+
+    showAuth();
+
+    // Reset forms
+    const signinFormElement = document.getElementById("signinFormElement");
+    const signupFormElement = document.getElementById("signupFormElement");
+    if (signinFormElement) signinFormElement.reset();
+    if (signupFormElement) signupFormElement.reset();
+  }
+}
+
+// ========================================
+// MAIN CHAT APP INITIALIZATION
 // ========================================
 
 // DOM Elements
@@ -16,12 +356,6 @@ const sidebarToggle = document.getElementById("sidebarToggle");
 const newChatBtn = document.getElementById("newChatBtn");
 const settingsBtn = document.getElementById("settingsBtn");
 
-// Backend API URL - Change this to your deployed backend URL
-const API_URL =
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1"
-    ? "http://localhost:3000/api"
-    : `${window.location.origin}/api`; // ← This part is automatic!
 // Create sidebar overlay for mobile
 const overlay = document.createElement("div");
 overlay.className = "sidebar-overlay";
@@ -206,7 +540,7 @@ function createSettingsModal() {
 
         <div class="settings-section">
           <h3>ℹ️ About</h3>
-          <p class="settings-hint">Synodic AI v4.5 - Powered by advanced AI<br>No API key required - Just chat!</p>
+          <p class="settings-hint">Synodic AI v4.5 - Powered by advanced AI<br>Secure authentication enabled</p>
         </div>
       </div>
 
@@ -277,25 +611,101 @@ function loadSettings() {
 
 let conversationHistory = [];
 
-// Initialize
-document.addEventListener("DOMContentLoaded", () => {
+function initializeChatApp() {
   console.log("Synodic AI Chatbot initialized");
-  userInput.focus();
+
+  if (userInput) {
+    userInput.focus();
+  }
+
   loadSettings();
 
   if (synthesis) {
     synthesis.onvoiceschanged = () => synthesis.getVoices();
   }
-});
 
-sendBtn.addEventListener("click", sendMessage);
-
-userInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    sendMessage();
+  // Event Listeners
+  if (sendBtn) {
+    sendBtn.addEventListener("click", sendMessage);
   }
-});
+
+  if (userInput) {
+    userInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    userInput.addEventListener("input", (e) => {
+      e.target.style.height = "auto";
+      e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
+    });
+  }
+
+  if (voiceBtn) {
+    voiceBtn.addEventListener("click", handleVoiceInput);
+  }
+
+  if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener("click", () => {
+      sidebar.classList.add("active");
+      overlay.classList.add("active");
+    });
+  }
+
+  if (overlay) {
+    overlay.addEventListener("click", () => {
+      sidebar.classList.remove("active");
+      overlay.classList.remove("active");
+    });
+  }
+
+  if (sidebarToggle) {
+    sidebarToggle.addEventListener("click", () => {
+      sidebar.classList.toggle("collapsed");
+    });
+  }
+
+  if (newChatBtn) {
+    newChatBtn.addEventListener("click", () => {
+      if (confirm("Start a new chat? Current conversation will be cleared.")) {
+        conversationHistory = [];
+        stopSpeaking();
+
+        chatbox.innerHTML = `
+          <div class="welcome-message">
+            <div class="welcome-icon">🌙</div>
+            <h2>Welcome to Synodic AI</h2>
+            <p>Your cosmic companion for intelligent conversations</p>
+          </div>
+        `;
+
+        sidebar.classList.remove("active");
+        overlay.classList.remove("active");
+        userInput.focus();
+      }
+    });
+  }
+
+  if (themeToggle) {
+    themeToggle.addEventListener("click", () => {
+      document.body.classList.toggle("light-mode");
+      const isLight = document.body.classList.contains("light-mode");
+      localStorage.setItem("synodic_darkmode", !isLight);
+    });
+  }
+
+  if (attachBtn) {
+    attachBtn.addEventListener("click", () => {
+      alert("File attachment coming soon! 📎");
+    });
+  }
+
+  if (settingsBtn) {
+    settingsBtn.addEventListener("click", openSettings);
+  }
+}
 
 async function sendMessage() {
   const message = userInput.value.trim();
@@ -337,11 +747,13 @@ async function sendMessage() {
   showThinking();
 
   try {
-    // Call backend API
+    const token = localStorage.getItem("synodic_token");
+
     const response = await fetch(`${API_URL}/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         message: message,
@@ -350,6 +762,12 @@ async function sendMessage() {
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        // Token expired or invalid
+        displaySystemMessage("⚠️ Session expired. Please log in again.");
+        setTimeout(() => logout(), 2000);
+        return;
+      }
       const errorData = await response.json();
       throw new Error(errorData.error || "Failed to get response from AI");
     }
@@ -382,6 +800,32 @@ async function sendMessage() {
     }
 
     displayMessage(errorMessage, "bot");
+  }
+}
+
+function handleVoiceInput() {
+  if (!recognition) {
+    alert(
+      "Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari."
+    );
+    return;
+  }
+
+  if (!voiceEnabled) {
+    displaySystemMessage("🎤 Please enable voice features in settings first!");
+    openSettings();
+    return;
+  }
+
+  if (isListening) {
+    recognition.stop();
+  } else {
+    try {
+      recognition.start();
+    } catch (error) {
+      console.error("Speech recognition error:", error);
+      displaySystemMessage("⚠️ Could not start voice input. Please try again.");
+    }
   }
 }
 
@@ -471,102 +915,5 @@ function getCurrentTime() {
   minutes = minutes < 10 ? "0" + minutes : minutes;
   return `${hours}:${minutes} ${ampm}`;
 }
-
-// ========================================
-// VOICE BUTTON
-// ========================================
-
-voiceBtn.addEventListener("click", () => {
-  if (!recognition) {
-    alert(
-      "Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari."
-    );
-    return;
-  }
-
-  if (!voiceEnabled) {
-    displaySystemMessage("🎤 Please enable voice features in settings first!");
-    openSettings();
-    return;
-  }
-
-  if (isListening) {
-    recognition.stop();
-  } else {
-    try {
-      recognition.start();
-    } catch (error) {
-      console.error("Speech recognition error:", error);
-      displaySystemMessage("⚠️ Could not start voice input. Please try again.");
-    }
-  }
-});
-
-// ========================================
-// SIDEBAR FUNCTIONALITY
-// ========================================
-
-mobileMenuBtn.addEventListener("click", () => {
-  sidebar.classList.add("active");
-  overlay.classList.add("active");
-});
-
-overlay.addEventListener("click", () => {
-  sidebar.classList.remove("active");
-  overlay.classList.remove("active");
-});
-
-sidebarToggle.addEventListener("click", () => {
-  sidebar.classList.toggle("collapsed");
-});
-
-newChatBtn.addEventListener("click", () => {
-  if (confirm("Start a new chat? Current conversation will be cleared.")) {
-    conversationHistory = [];
-    stopSpeaking();
-
-    chatbox.innerHTML = `
-      <div class="welcome-message">
-        <div class="welcome-icon">🌙</div>
-        <h2>Welcome to Synodic AI</h2>
-        <p>Your cosmic companion for intelligent conversations</p>
-      </div>
-    `;
-
-    sidebar.classList.remove("active");
-    overlay.classList.remove("active");
-    userInput.focus();
-  }
-});
-
-// ========================================
-// ADDITIONAL FEATURES
-// ========================================
-
-themeToggle.addEventListener("click", () => {
-  document.body.classList.toggle("light-mode");
-  const isLight = document.body.classList.contains("light-mode");
-  localStorage.setItem("synodic_darkmode", !isLight);
-});
-
-attachBtn.addEventListener("click", () => {
-  alert("File attachment coming soon! 📎");
-});
-
-settingsBtn.addEventListener("click", openSettings);
-
-userInput.addEventListener("input", (e) => {
-  e.target.style.height = "auto";
-  e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
-});
-
-const style = document.createElement("style");
-style.textContent = `
-  @keyframes fadeOut {
-    from { opacity: 1; transform: translateY(0); }
-    to { opacity: 0; transform: translateY(-20px); }
-  }
-`;
-document.head.appendChild(style);
 
 console.log("✨ Synodic AI is ready to chat!");
