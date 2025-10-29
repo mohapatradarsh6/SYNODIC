@@ -119,7 +119,7 @@ app.post("/api/auth/signup", async (req, res) => {
   }
 });
 
-// Sign In
+//
 app.post("/api/auth/signin", async (req, res) => {
   try {
     const { email, password, rememberMe } = req.body;
@@ -129,10 +129,41 @@ app.post("/api/auth/signin", async (req, res) => {
       return res.status(400).json({ error: "Email and password are required" });
     }
 
+    // ============================================
     // DEV MODE: Allow any email/password for development
-    // In production, uncomment the code below to verify users properly
-
+    // Uncomment the code below to skip authentication during testing
+    // ============================================
     /*
+    // DEV MODE: Create a temporary user for any login
+    const user = {
+      id: Date.now().toString(),
+      name: email.split("@")[0],
+      email: email,
+      createdAt: new Date(),
+    };
+    
+    // Create JWT token
+    const expiresIn = rememberMe ? "30d" : "7d";
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
+      expiresIn,
+    });
+
+    // Return user data and token
+    return res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        createdAt: user.createdAt,
+      },
+    });
+    */
+
+    // ============================================
+    // PRODUCTION MODE: Verify user credentials
+    // ============================================
+
     // Find user
     const user = users.find((u) => u.email === email);
     if (!user) {
@@ -144,15 +175,6 @@ app.post("/api/auth/signin", async (req, res) => {
     if (!validPassword) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
-    */
-
-    // DEV MODE: Create a temporary user for any login
-    const user = {
-      id: Date.now().toString(),
-      name: email.split("@")[0], // Use email username as name
-      email: email,
-      createdAt: new Date(),
-    };
 
     // Create JWT token
     const expiresIn = rememberMe ? "30d" : "7d";
