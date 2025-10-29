@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Synodic AI - Chat</title>
+    <title>Synodic AI - Enhanced Chat</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
@@ -92,18 +92,33 @@
           <h1 class="model-name">Synodic AI</h1>
           <span class="model-version">v4.5</span>
         </div>
-        <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-          </svg>
-        </button>
+        <div style="display: flex; gap: 8px">
+          <button class="icon-btn" id="settingsBtn" aria-label="Settings">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M12 1v6m0 6v6m9-9h-6m-6 0H3"></path>
+            </svg>
+          </button>
+          <button class="icon-btn" id="themeToggle" aria-label="Toggle theme">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
+        </div>
       </header>
 
       <!-- Chat Messages Area -->
@@ -149,13 +164,13 @@
               ></path>
             </svg>
           </button>
-          <input
-            type="text"
+          <textarea
             id="userInput"
             class="message-input"
             placeholder="Ask anything..."
             autocomplete="off"
-          />
+            rows="1"
+          ></textarea>
           <button
             class="icon-btn voice-btn"
             id="voiceBtn"

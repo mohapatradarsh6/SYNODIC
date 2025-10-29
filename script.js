@@ -1,5 +1,5 @@
 // ========================================
-// SYNODIC AI CHATBOT - JAVASCRIPT
+// SYNODIC AI CHATBOT - FRONTEND (NO API KEY NEEDED)
 // ========================================
 
 // DOM Elements
@@ -14,44 +14,293 @@ const sidebar = document.getElementById("sidebar");
 const mobileMenuBtn = document.getElementById("mobileMenuBtn");
 const sidebarToggle = document.getElementById("sidebarToggle");
 const newChatBtn = document.getElementById("newChatBtn");
+const settingsBtn = document.getElementById("settingsBtn");
 
+// Backend API URL - Change this to your deployed backend URL
+const API_URL = "http://localhost:3000/api";
 // Create sidebar overlay for mobile
 const overlay = document.createElement("div");
 overlay.className = "sidebar-overlay";
 document.body.appendChild(overlay);
 
-// Initialize
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("Synodic AI Chatbot initialized");
-  userInput.focus();
-});
+// ========================================
+// VOICE INTERACTION SETUP
+// ========================================
+
+let recognition = null;
+let synthesis = window.speechSynthesis;
+let isListening = false;
+let isSpeaking = false;
+let voiceEnabled = localStorage.getItem("synodic_voice") === "true";
+let autoSpeak = localStorage.getItem("synodic_autospeak") === "true";
+
+// Initialize Speech Recognition
+if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = "en-US";
+
+  recognition.onstart = () => {
+    isListening = true;
+    voiceBtn.classList.add("listening");
+    updateVoiceButtonState();
+  };
+
+  recognition.onresult = (event) => {
+    let finalTranscript = "";
+
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        finalTranscript += transcript;
+      }
+    }
+
+    if (finalTranscript) {
+      userInput.value = finalTranscript;
+      userInput.style.height = "auto";
+      userInput.style.height = Math.min(userInput.scrollHeight, 200) + "px";
+    }
+  };
+
+  recognition.onerror = (event) => {
+    console.error("Speech recognition error:", event.error);
+    isListening = false;
+    voiceBtn.classList.remove("listening");
+    updateVoiceButtonState();
+
+    if (event.error === "no-speech") {
+      displaySystemMessage("🎤 No speech detected. Please try again.");
+    } else if (event.error === "not-allowed") {
+      displaySystemMessage(
+        "⚠️ Microphone access denied. Please enable it in your browser settings."
+      );
+    }
+  };
+
+  recognition.onend = () => {
+    isListening = false;
+    voiceBtn.classList.remove("listening");
+    updateVoiceButtonState();
+  };
+}
+
+// Update voice button appearance
+function updateVoiceButtonState() {
+  if (isListening) {
+    voiceBtn.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+      </svg>
+    `;
+    voiceBtn.style.background = "rgba(239, 68, 68, 0.2)";
+    voiceBtn.style.borderColor = "rgba(239, 68, 68, 0.4)";
+  } else {
+    voiceBtn.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+        <line x1="12" y1="19" x2="12" y2="23"></line>
+        <line x1="8" y1="23" x2="16" y2="23"></line>
+      </svg>
+    `;
+    voiceBtn.style.background = voiceEnabled
+      ? "rgba(138, 99, 255, 0.2)"
+      : "transparent";
+    voiceBtn.style.borderColor = voiceEnabled
+      ? "rgba(138, 99, 255, 0.4)"
+      : "rgba(138, 99, 255, 0.2)";
+  }
+}
+
+// Text-to-Speech function
+function speakText(text) {
+  if (!voiceEnabled || !synthesis) return;
+
+  synthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.rate = 1.0;
+  utterance.pitch = 1.0;
+  utterance.volume = 1.0;
+  utterance.lang = "en-US";
+
+  const voices = synthesis.getVoices();
+  const preferredVoice = voices.find(
+    (voice) =>
+      voice.lang.startsWith("en") &&
+      (voice.name.includes("Google") || voice.name.includes("Microsoft"))
+  );
+  if (preferredVoice) {
+    utterance.voice = preferredVoice;
+  }
+
+  utterance.onstart = () => {
+    isSpeaking = true;
+  };
+  utterance.onend = () => {
+    isSpeaking = false;
+  };
+  utterance.onerror = (event) => {
+    console.error("Speech synthesis error:", event.error);
+    isSpeaking = false;
+  };
+
+  synthesis.speak(utterance);
+}
+
+function stopSpeaking() {
+  if (synthesis) {
+    synthesis.cancel();
+    isSpeaking = false;
+  }
+}
+
+// ========================================
+// SETTINGS MODAL
+// ========================================
+
+function createSettingsModal() {
+  const modal = document.createElement("div");
+  modal.className = "settings-modal";
+  modal.id = "settingsModal";
+  modal.innerHTML = `
+    <div class="settings-content">
+      <div class="settings-header">
+        <h2>⚙️ Settings</h2>
+        <button class="close-btn" onclick="closeSettings()">×</button>
+      </div>
+      
+      <div class="settings-body">
+        <div class="settings-section">
+          <h3>🎤 Voice Features</h3>
+          <label class="settings-toggle">
+            <input type="checkbox" id="voiceToggle">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Enable Voice Interaction</span>
+          </label>
+          
+          <label class="settings-toggle">
+            <input type="checkbox" id="autoSpeakToggle">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Auto-speak AI Responses</span>
+          </label>
+          <p class="settings-hint">💡 Click the microphone to speak your messages. AI can read responses aloud.</p>
+        </div>
+
+        <div class="settings-section">
+          <h3>🎨 Appearance</h3>
+          <label class="settings-toggle">
+            <input type="checkbox" id="darkModeToggle" checked>
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Dark Mode</span>
+          </label>
+        </div>
+
+        <div class="settings-section">
+          <h3>ℹ️ About</h3>
+          <p class="settings-hint">Synodic AI v4.5 - Powered by advanced AI<br>No API key required - Just chat!</p>
+        </div>
+      </div>
+
+      <div class="settings-footer">
+        <button class="settings-btn secondary" onclick="closeSettings()">Cancel</button>
+        <button class="settings-btn primary" onclick="saveSettings()">Save Settings</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  loadSettings();
+}
+
+function openSettings() {
+  let modal = document.getElementById("settingsModal");
+  if (!modal) {
+    createSettingsModal();
+    modal = document.getElementById("settingsModal");
+  }
+  modal.classList.add("active");
+}
+
+function closeSettings() {
+  const modal = document.getElementById("settingsModal");
+  if (modal) {
+    modal.classList.remove("active");
+  }
+}
+
+function saveSettings() {
+  const voiceToggle = document.getElementById("voiceToggle").checked;
+  const autoSpeakToggle = document.getElementById("autoSpeakToggle").checked;
+  const darkMode = document.getElementById("darkModeToggle").checked;
+
+  localStorage.setItem("synodic_voice", voiceToggle);
+  localStorage.setItem("synodic_autospeak", autoSpeakToggle);
+  localStorage.setItem("synodic_darkmode", darkMode);
+
+  voiceEnabled = voiceToggle;
+  autoSpeak = autoSpeakToggle;
+
+  updateVoiceButtonState();
+
+  displaySystemMessage("✅ Settings saved successfully!");
+  closeSettings();
+}
+
+function loadSettings() {
+  voiceEnabled = localStorage.getItem("synodic_voice") === "true";
+  autoSpeak = localStorage.getItem("synodic_autospeak") === "true";
+
+  const voiceCheckbox = document.getElementById("voiceToggle");
+  const autoSpeakCheckbox = document.getElementById("autoSpeakToggle");
+  const darkModeCheckbox = document.getElementById("darkModeToggle");
+
+  if (voiceCheckbox) voiceCheckbox.checked = voiceEnabled;
+  if (autoSpeakCheckbox) autoSpeakCheckbox.checked = autoSpeak;
+  if (darkModeCheckbox)
+    darkModeCheckbox.checked =
+      localStorage.getItem("synodic_darkmode") !== "false";
+
+  updateVoiceButtonState();
+}
 
 // ========================================
 // MESSAGE HANDLING
 // ========================================
 
-// Send message on button click
+let conversationHistory = [];
+
+// Initialize
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("Synodic AI Chatbot initialized");
+  userInput.focus();
+  loadSettings();
+
+  if (synthesis) {
+    synthesis.onvoiceschanged = () => synthesis.getVoices();
+  }
+});
+
 sendBtn.addEventListener("click", sendMessage);
 
-// Send message on Enter key (Shift+Enter for new line)
-userInput.addEventListener("keypress", (e) => {
+userInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     sendMessage();
   }
 });
 
-// Function to send message
-function sendMessage() {
+async function sendMessage() {
   const message = userInput.value.trim();
 
-  // Validation: Empty message
   if (message === "") {
     shakeInput();
     return;
   }
 
-  // Validation: Message too long (max 5000 characters)
   if (message.length > 5000) {
     displaySystemMessage(
       "⚠️ Message is too long. Please keep it under 5000 characters."
@@ -59,7 +308,6 @@ function sendMessage() {
     return;
   }
 
-  // Validation: Prevent spam (minimum 0.5 seconds between messages)
   const now = Date.now();
   if (window.lastMessageTime && now - window.lastMessageTime < 500) {
     shakeInput();
@@ -67,92 +315,96 @@ function sendMessage() {
   }
   window.lastMessageTime = now;
 
-  // Validation: Check for only special characters or numbers
-  if (/^[^a-zA-Z]+$/.test(message) && message.length < 3) {
-    displaySystemMessage(
-      "🤔 I need a bit more context. Could you please elaborate?"
-    );
-    userInput.value = "";
-    return;
-  }
+  stopSpeaking();
 
-  // Clear input
   userInput.value = "";
   userInput.style.height = "auto";
   userInput.focus();
 
-  // Remove welcome message if it exists
   const welcomeMsg = chatbox.querySelector(".welcome-message");
   if (welcomeMsg) {
     welcomeMsg.style.animation = "fadeOut 0.3s ease-out";
     setTimeout(() => welcomeMsg.remove(), 300);
   }
 
-  // Display user message
   displayMessage(message, "user");
+  conversationHistory.push({ role: "user", content: message });
 
-  // Show thinking indicator
   showThinking();
 
-  // Force scroll after thinking indicator is shown
-  setTimeout(() => {
-    thinkingIndicator.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, 300);
+  try {
+    // Call backend API
+    const response = await fetch(`${API_URL}/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: message,
+        history: conversationHistory.slice(-10),
+      }),
+    });
 
-  // Simulate bot response with realistic delay
-  const responseDelay = Math.min(Math.max(message.length * 20, 800), 3000);
-
-  setTimeout(() => {
-    hideThinking();
-    try {
-      const botResponse = generateBotResponse(message);
-      displayMessage(botResponse, "bot");
-
-      // Scroll to bot response after it's displayed
-      setTimeout(() => {
-        chatbox.scrollTop = chatbox.scrollHeight;
-      }, 100);
-    } catch (error) {
-      console.error("Error generating response:", error);
-      displayMessage(
-        "😅 Oops! Something went wrong on my end. Could you try asking that again?",
-        "bot"
-      );
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to get response from AI");
     }
-  }, responseDelay);
+
+    const data = await response.json();
+
+    hideThinking();
+    displayMessage(data.response, "bot");
+    conversationHistory.push({ role: "assistant", content: data.response });
+
+    if (autoSpeak && voiceEnabled) {
+      setTimeout(() => speakText(data.response), 500);
+    }
+
+    setTimeout(() => {
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }, 100);
+  } catch (error) {
+    hideThinking();
+    console.error("AI Error:", error);
+
+    let errorMessage = "😅 Oops! Something went wrong. ";
+
+    if (error.message.includes("Failed to fetch")) {
+      errorMessage += "Cannot connect to server. Please check your connection.";
+    } else if (error.message.includes("busy")) {
+      errorMessage += "Service is busy. Please try again in a moment.";
+    } else {
+      errorMessage += "Please try again.";
+    }
+
+    displayMessage(errorMessage, "bot");
+  }
 }
 
-// Shake input animation for invalid input
 function shakeInput() {
   userInput.classList.add("shake");
-  setTimeout(() => {
-    userInput.classList.remove("shake");
-  }, 500);
+  setTimeout(() => userInput.classList.remove("shake"), 500);
 }
 
-// Display system message (warnings, errors)
 function displaySystemMessage(text) {
   const messageDiv = document.createElement("div");
   messageDiv.className = "system-message";
   messageDiv.innerHTML = `
-        <div class="system-content">
-            <span>${text}</span>
-        </div>
-    `;
+    <div class="system-content">
+      <span>${text}</span>
+    </div>
+  `;
 
   chatbox.appendChild(messageDiv);
 
-  // Auto-remove after 5 seconds
   setTimeout(() => {
     messageDiv.style.animation = "fadeOut 0.3s ease-out";
     setTimeout(() => messageDiv.remove(), 300);
   }, 5000);
 
-  // Scroll to bottom
   chatbox.scrollTop = chatbox.scrollHeight;
 }
 
-// Display message in chatbox
 function displayMessage(text, sender) {
   const messageDiv = document.createElement("div");
   messageDiv.className = `message ${sender}`;
@@ -175,211 +427,110 @@ function displayMessage(text, sender) {
   bubbleDiv.appendChild(messageContent);
   bubbleDiv.appendChild(timestamp);
 
+  if (sender === "bot" && voiceEnabled) {
+    const speakerBtn = document.createElement("button");
+    speakerBtn.className = "speaker-btn";
+    speakerBtn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+      </svg>
+    `;
+    speakerBtn.onclick = () => speakText(text);
+    bubbleDiv.appendChild(speakerBtn);
+  }
+
   messageDiv.appendChild(avatar);
   messageDiv.appendChild(bubbleDiv);
 
   chatbox.appendChild(messageDiv);
 
-  // Smooth scroll to the new message
   setTimeout(() => {
     messageDiv.scrollIntoView({ behavior: "smooth", block: "end" });
   }, 100);
 }
 
-// Show thinking indicator
 function showThinking() {
   thinkingIndicator.classList.add("active");
 }
 
-// Hide thinking indicator
 function hideThinking() {
   thinkingIndicator.classList.remove("active");
 }
 
-// Get current time
 function getCurrentTime() {
   const now = new Date();
   let hours = now.getHours();
   let minutes = now.getMinutes();
   const ampm = hours >= 12 ? "PM" : "AM";
-
-  hours = hours % 12;
-  hours = hours ? hours : 12;
+  hours = hours % 12 || 12;
   minutes = minutes < 10 ? "0" + minutes : minutes;
-
   return `${hours}:${minutes} ${ampm}`;
 }
 
-// Generate bot response (placeholder - will be replaced with real AI)
-function generateBotResponse(userMessage) {
-  // Safety check
-  if (!userMessage || typeof userMessage !== "string") {
-    return "I didn't quite catch that. Could you say it again?";
+// ========================================
+// VOICE BUTTON
+// ========================================
+
+voiceBtn.addEventListener("click", () => {
+  if (!recognition) {
+    alert(
+      "Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari."
+    );
+    return;
   }
 
-  const lowerMessage = userMessage.toLowerCase().trim();
-
-  // Handle very short messages
-  if (lowerMessage.length < 2) {
-    return "🤔 That's quite brief! Could you tell me more?";
+  if (!voiceEnabled) {
+    displaySystemMessage("🎤 Please enable voice features in settings first!");
+    openSettings();
+    return;
   }
 
-  // Greeting responses
-  if (
-    lowerMessage.match(
-      /^(hi|hello|hey|greetings|good morning|good evening|good afternoon)$/
-    )
-  ) {
-    const greetings = [
-      "Hello! 👋 I'm Synodic AI, your cosmic companion. How can I assist you today?",
-      "Hey there! 🌙 Great to see you! What can I help you with?",
-      "Hi! ✨ Welcome back! What's on your mind?",
-      "Greetings! 🌟 How can I illuminate your day?",
-    ];
-    return greetings[Math.floor(Math.random() * greetings.length)];
+  if (isListening) {
+    recognition.stop();
+  } else {
+    try {
+      recognition.start();
+    } catch (error) {
+      console.error("Speech recognition error:", error);
+      displaySystemMessage("⚠️ Could not start voice input. Please try again.");
+    }
   }
-
-  // How are you responses
-  if (
-    lowerMessage.includes("how are you") ||
-    lowerMessage.includes("how r u")
-  ) {
-    const statusResponses = [
-      "I'm functioning perfectly, thank you for asking! 🌙 How can I help you today?",
-      "I'm doing great! Ready to assist you with anything you need! ✨",
-      "All systems operational! 🚀 What can I do for you?",
-      "I'm excellent! Thanks for asking! How about you? 😊",
-    ];
-    return statusResponses[Math.floor(Math.random() * statusResponses.length)];
-  }
-
-  // Name/identity questions
-  if (
-    lowerMessage.includes("your name") ||
-    lowerMessage.includes("who are you") ||
-    lowerMessage.match(/what('?re| are) you/)
-  ) {
-    return "I'm Synodic AI, an intelligent chatbot designed to assist you with various tasks and conversations. I'm powered by advanced language models to provide you with helpful, accurate, and engaging responses! 🌙";
-  }
-
-  // Help requests
-  if (
-    lowerMessage.includes("help") ||
-    lowerMessage.includes("what can you do") ||
-    lowerMessage.includes("capabilities")
-  ) {
-    return "I'm here to help! You can ask me questions, have conversations, or request assistance with various tasks. I can help with:\n\n• Answering questions\n• Writing and editing\n• Problem-solving\n• Creative tasks\n• General knowledge\n• And much more!\n\nWhat would you like to know? 🌟";
-  }
-
-  // Thank you responses
-  if (lowerMessage.match(/^(thanks|thank you|thx|ty)$/)) {
-    const thankResponses = [
-      "You're very welcome! 😊 Is there anything else I can help with?",
-      "Happy to help! 🌙 Feel free to ask me anything else!",
-      "My pleasure! ✨ Let me know if you need anything else!",
-      "Anytime! 🌟 I'm here if you need more assistance!",
-    ];
-    return thankResponses[Math.floor(Math.random() * thankResponses.length)];
-  }
-
-  // Goodbye responses
-  if (lowerMessage.match(/^(bye|goodbye|see you|see ya|gotta go)$/)) {
-    const goodbyes = [
-      "Goodbye! 👋 Come back anytime you need help!",
-      "See you later! 🌙 Have a wonderful day!",
-      "Take care! ✨ I'll be here whenever you need me!",
-      "Farewell! 🌟 Until next time!",
-    ];
-    return goodbyes[Math.floor(Math.random() * goodbyes.length)];
-  }
-
-  // Insults or negative input
-  if (lowerMessage.match(/stupid|dumb|useless|bad|terrible|suck/)) {
-    return "I'm sorry if I didn't meet your expectations. I'm always learning and improving! Could you tell me what went wrong so I can assist you better? 💙";
-  }
-
-  // Question detection
-  if (
-    lowerMessage.includes("?") ||
-    lowerMessage.startsWith("what") ||
-    lowerMessage.startsWith("how") ||
-    lowerMessage.startsWith("why") ||
-    lowerMessage.startsWith("when") ||
-    lowerMessage.startsWith("where") ||
-    lowerMessage.startsWith("can you") ||
-    lowerMessage.startsWith("do you")
-  ) {
-    return "That's a great question! While I don't have access to real-time information yet, I'd love to help. Could you provide more context or rephrase your question? 🤔";
-  }
-
-  // Unclear/gibberish detection (too many consonants or random characters)
-  const consonantRatio =
-    (lowerMessage.match(/[bcdfghjklmnpqrstvwxyz]/g) || []).length /
-    lowerMessage.length;
-  if (consonantRatio > 0.7 && lowerMessage.length > 5) {
-    return "🤔 I'm having trouble understanding that. Could you rephrase or provide more details?";
-  }
-
-  // Repeated characters (like "aaaaaaa" or "hahahaha")
-  if (/(.)\1{4,}/.test(lowerMessage)) {
-    return "😄 I see what you did there! Was there something specific you wanted to ask me?";
-  }
-
-  // Generic fallback responses
-  const fallbackResponses = [
-    "That's interesting! I'm still learning about that topic. Could you tell me more so I can better assist you? 🌟",
-    "I understand what you're saying, but I need a bit more information to provide a helpful response. Can you elaborate? 💭",
-    "Great question! While I'm processing that, could you provide more context or details? 🔍",
-    "I'm here to help, but I need a clearer understanding. Could you rephrase or add more details? 💡",
-    "Hmm, I'm not quite sure about that yet. Could you break it down for me or ask in a different way? 🤔",
-  ];
-
-  return fallbackResponses[
-    Math.floor(Math.random() * fallbackResponses.length)
-  ];
-}
+});
 
 // ========================================
 // SIDEBAR FUNCTIONALITY
 // ========================================
 
-// Mobile menu toggle
 mobileMenuBtn.addEventListener("click", () => {
   sidebar.classList.add("active");
   overlay.classList.add("active");
 });
 
-// Close sidebar on overlay click
 overlay.addEventListener("click", () => {
   sidebar.classList.remove("active");
   overlay.classList.remove("active");
 });
 
-// Sidebar toggle button
 sidebarToggle.addEventListener("click", () => {
   sidebar.classList.toggle("collapsed");
-  // Will implement collapse animation later
 });
 
-// New chat button
 newChatBtn.addEventListener("click", () => {
-  if (
-    confirm("Start a new chat? Current conversation will be saved in history.")
-  ) {
-    // Clear chatbox
-    chatbox.innerHTML = `
-            <div class="welcome-message">
-                <div class="welcome-icon">🌙</div>
-                <h2>Welcome to Synodic AI</h2>
-                <p>Your cosmic companion for intelligent conversations</p>
-            </div>
-        `;
+  if (confirm("Start a new chat? Current conversation will be cleared.")) {
+    conversationHistory = [];
+    stopSpeaking();
 
-    // Close mobile sidebar if open
+    chatbox.innerHTML = `
+      <div class="welcome-message">
+        <div class="welcome-icon">🌙</div>
+        <h2>Welcome to Synodic AI</h2>
+        <p>Your cosmic companion for intelligent conversations</p>
+      </div>
+    `;
+
     sidebar.classList.remove("active");
     overlay.classList.remove("active");
-
-    // Focus input
     userInput.focus();
   }
 });
@@ -388,51 +539,29 @@ newChatBtn.addEventListener("click", () => {
 // ADDITIONAL FEATURES
 // ========================================
 
-// Theme toggle functionality (placeholder)
 themeToggle.addEventListener("click", () => {
-  console.log("Theme toggle clicked - feature coming soon!");
-  // Will implement light/dark mode toggle later
-  alert("Theme customization coming soon! 🌓");
+  document.body.classList.toggle("light-mode");
+  const isLight = document.body.classList.contains("light-mode");
+  localStorage.setItem("synodic_darkmode", !isLight);
 });
 
-// Voice button functionality (placeholder)
-voiceBtn.addEventListener("click", () => {
-  console.log("Voice input clicked - feature coming soon!");
-  alert("Voice input coming soon! 🎤");
-});
-
-// Attach button functionality (placeholder)
 attachBtn.addEventListener("click", () => {
-  console.log("Attach clicked - feature coming soon!");
   alert("File attachment coming soon! 📎");
 });
 
-// Auto-resize input on typing
+settingsBtn.addEventListener("click", openSettings);
+
 userInput.addEventListener("input", (e) => {
   e.target.style.height = "auto";
   e.target.style.height = Math.min(e.target.scrollHeight, 200) + "px";
 });
 
-// Prevent form submission on Enter in input
-userInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-  }
-});
-
-// Add fadeOut animation to CSS dynamically
 const style = document.createElement("style");
 style.textContent = `
-    @keyframes fadeOut {
-        from {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        to {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-    }
+  @keyframes fadeOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-20px); }
+  }
 `;
 document.head.appendChild(style);
 
