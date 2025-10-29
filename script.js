@@ -17,7 +17,11 @@ const newChatBtn = document.getElementById("newChatBtn");
 const settingsBtn = document.getElementById("settingsBtn");
 
 // Backend API URL - Change this to your deployed backend URL
-const API_URL = "http://localhost:3000/api";
+const API_URL =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? "http://localhost:3000/api"
+    : `${window.location.origin}/api`; // ← This part is automatic!
 // Create sidebar overlay for mobile
 const overlay = document.createElement("div");
 overlay.className = "sidebar-overlay";
