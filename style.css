@@ -1039,6 +1039,9 @@ body {
   align-items: center;
   border-bottom: 1px solid rgba(138, 99, 255, 0.15);
   min-height: 60px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .mobile-menu-btn {
@@ -1101,7 +1104,8 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 24px;
-  padding-bottom: 180px;
+  padding-bottom: 200px;
+  padding-top: 80px;
   max-width: 900px;
   width: 100%;
   margin: 0 auto;
@@ -1349,6 +1353,11 @@ body {
   right: 0;
   z-index: 10;
   padding-bottom: 20px;
+  pointer-events: none;
+}
+
+.input-wrapper {
+  pointer-events: auto;
 }
 
 /* Safe area for mobile devices */
@@ -1430,6 +1439,16 @@ body {
 /* ========================================
    RESPONSIVE DESIGN
    ======================================== */
+
+@media (min-width: 901px) {
+  .chat-container {
+    margin-left: 0;
+  }
+
+  .sidebar {
+    position: relative;
+  }
+}
 @media (max-width: 1200px) {
   .hero-section {
     padding: 40px 30px;
@@ -1498,7 +1517,7 @@ body {
     border-right: none;
     padding: 40px 24px;
     order: 1;
-    height: 100vh; /* ADD THIS */
+    height: 100vh;
     height: 100dvh;
   }
 
@@ -1561,6 +1580,13 @@ body {
 .chatbox {
   padding: 16px;
   padding-bottom: 240px;
+  padding-top: 0;
+}
+
+.chat-header {
+  position: sticky; /* ADD THIS */
+  top: 0; /* ADD THIS */
+  z-index: 50; /* ADD THIS */
 }
 
 .input-container {
