@@ -173,9 +173,10 @@ async function handleSignIn(e) {
 // Handle Sign Up
 async function handleSignUp(e) {
   e.preventDefault();
-
-  const name = document.getElementById("signupName").value;
-  const email = document.getElementById("signupEmail").value;
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  if (submitBtn.disabled) return;
+  const name = document.getElementById("signupName").value.trim();
+  const email = document.getElementById("signupEmail").value.trim();
   const password = document.getElementById("signupPassword").value;
   const confirmPassword = document.getElementById(
     "signupConfirmPassword"
@@ -202,6 +203,10 @@ async function handleSignUp(e) {
     showAuthError("Please agree to the Terms of Service");
     return;
   }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Creating Account...";
+  submitBtn.style.opacity = "0.7";
 
   try {
     const response = await fetch(`${API_URL}/auth/signup`, {
@@ -235,6 +240,10 @@ async function handleSignUp(e) {
   } catch (error) {
     console.error("Sign up error:", error);
     showAuthError(error.message);
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Create Account";
+    submitBtn.style.opacity = "1";
   }
 }
 
