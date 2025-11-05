@@ -1395,6 +1395,118 @@ INPUT CONTAINER
 .message-input::placeholder {
   color: #64748b;
 }
+
+/* ========================================
+   MESSAGE ACTIONS
+   ======================================== */
+.message-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  background: rgba(138, 99, 255, 0.1);
+  border: 1px solid rgba(138, 99, 255, 0.2);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: #a78bfa;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.action-btn:hover {
+  background: rgba(138, 99, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.action-btn.success {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+}
+
+.action-btn svg {
+  flex-shrink: 0;
+}
+
+.delete-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+/* Edit Mode */
+.message.editing .message-content {
+  background: rgba(138, 99, 255, 0.15);
+  padding: 12px;
+}
+
+.edit-textarea {
+  width: 100%;
+  background: rgba(20, 25, 45, 0.8);
+  border: 2px solid rgba(138, 99, 255, 0.3);
+  border-radius: 8px;
+  color: #e0e0ff;
+  font-size: 15px;
+  padding: 12px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 60px;
+  max-height: 200px;
+  margin-bottom: 12px;
+}
+
+.edit-textarea:focus {
+  outline: none;
+  border-color: rgba(138, 99, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(138, 99, 255, 0.1);
+}
+
+.edit-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.edit-control-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-family: inherit;
+}
+
+.cancel-btn {
+  background: transparent;
+  border: 1px solid rgba(138, 99, 255, 0.3);
+  color: #e0e0ff;
+}
+
+.cancel-btn:hover {
+  background: rgba(138, 99, 255, 0.1);
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+}
+
+.save-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6);
+}
+
 /* ========================================
 RESPONSIVE DESIGN
 ======================================== */
@@ -1610,5 +1722,25 @@ RESPONSIVE DESIGN
 
   .welcome-message p {
     font-size: 16px;
+  }
+
+  .message-actions {
+    gap: 6px;
+  }
+
+  .action-btn {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+
+  .action-btn span {
+    display: none; /* Hide text on mobile, show only icons */
+  }
+
+  .action-btn {
+    width: 32px;
+    height: 32px;
+    justify-content: center;
+    padding: 0;
   }
 }

@@ -937,7 +937,11 @@ async function sendMessage() {
   }
 
   displayMessage(message, "user");
-  conversationHistory.push({ role: "user", content: message });
+  conversationHistory.push({
+    role: "user",
+    content: message,
+    timestamp: Date.now().toString(),
+  });
 
   showThinking();
 
@@ -1051,6 +1055,7 @@ function displaySystemMessage(text) {
 function displayMessage(text, sender) {
   const messageDiv = document.createElement("div");
   messageDiv.className = `message ${sender}`;
+  messageDiv.setAttribute("data-message-id", Date.now()); // Add unique ID
 
   const avatar = document.createElement("div");
   avatar.className = "message-avatar";
@@ -1067,21 +1072,69 @@ function displayMessage(text, sender) {
   timestamp.className = "message-timestamp";
   timestamp.textContent = getCurrentTime();
 
-  bubbleDiv.appendChild(messageContent);
-  bubbleDiv.appendChild(timestamp);
+  // Action buttons container
+  const actionsDiv = document.createElement("div");
+  actionsDiv.className = "message-actions";
 
+  // Copy button (for both user and bot)
+  const copyBtn = document.createElement("button");
+  copyBtn.className = "action-btn copy-btn";
+  copyBtn.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+    </svg>
+    <span>Copy</span>
+  `;
+  copyBtn.onclick = () => copyMessage(text, copyBtn);
+  actionsDiv.appendChild(copyBtn);
+
+  // Edit button (only for user messages)
+  if (sender === "user") {
+    const editBtn = document.createElement("button");
+    editBtn.className = "action-btn edit-btn";
+    editBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+      </svg>
+      <span>Edit</span>
+    `;
+    editBtn.onclick = () => editMessage(messageDiv, messageContent, text);
+    actionsDiv.appendChild(editBtn);
+
+    // Delete button (only for user messages)
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "action-btn delete-btn";
+    deleteBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </svg>
+      <span>Delete</span>
+    `;
+    deleteBtn.onclick = () => deleteMessage(messageDiv);
+    actionsDiv.appendChild(deleteBtn);
+  }
+
+  // Speaker button (only for bot messages)
   if (sender === "bot" && voiceEnabled) {
     const speakerBtn = document.createElement("button");
-    speakerBtn.className = "speaker-btn";
+    speakerBtn.className = "action-btn speaker-btn";
     speakerBtn.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
         <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
       </svg>
+      <span>Speak</span>
     `;
     speakerBtn.onclick = () => speakText(text);
-    bubbleDiv.appendChild(speakerBtn);
+    actionsDiv.appendChild(speakerBtn);
   }
+
+  bubbleDiv.appendChild(messageContent);
+  bubbleDiv.appendChild(timestamp);
+  bubbleDiv.appendChild(actionsDiv);
 
   messageDiv.appendChild(avatar);
   messageDiv.appendChild(bubbleDiv);
@@ -1091,6 +1144,233 @@ function displayMessage(text, sender) {
   setTimeout(() => {
     messageDiv.scrollIntoView({ behavior: "smooth", block: "end" });
   }, 100);
+}
+
+// Copy message to clipboard
+function copyMessage(text, button) {
+  navigator.clipboard
+    .writeText(text)
+    .then(() => {
+      const originalHTML = button.innerHTML;
+      button.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      <span>Copied!</span>
+    `;
+      button.classList.add("success");
+
+      setTimeout(() => {
+        button.innerHTML = originalHTML;
+        button.classList.remove("success");
+      }, 2000);
+    })
+    .catch((err) => {
+      console.error("Failed to copy:", err);
+      alert("Failed to copy message");
+    });
+}
+
+// Edit message
+function editMessage(messageDiv, messageContent, originalText) {
+  // Check if already editing
+  if (messageDiv.classList.contains("editing")) {
+    return;
+  }
+
+  messageDiv.classList.add("editing");
+
+  // Create textarea for editing
+  const textarea = document.createElement("textarea");
+  textarea.className = "edit-textarea";
+  textarea.value = originalText;
+  textarea.rows = 3;
+
+  // Replace content with textarea
+  const originalContent = messageContent.innerHTML;
+  messageContent.innerHTML = "";
+  messageContent.appendChild(textarea);
+
+  // Create edit controls
+  const editControls = document.createElement("div");
+  editControls.className = "edit-controls";
+  editControls.innerHTML = `
+    <button class="edit-control-btn cancel-btn">Cancel</button>
+    <button class="edit-control-btn save-btn">Save & Resend</button>
+  `;
+
+  messageContent.appendChild(editControls);
+
+  textarea.focus();
+  textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+
+  // Auto-resize textarea
+  textarea.style.height = "auto";
+  textarea.style.height = Math.min(textarea.scrollHeight, 200) + "px";
+  textarea.addEventListener("input", () => {
+    textarea.style.height = "auto";
+    textarea.style.height = Math.min(textarea.scrollHeight, 200) + "px";
+  });
+
+  // Cancel button
+  editControls.querySelector(".cancel-btn").onclick = () => {
+    messageContent.innerHTML = originalContent;
+    messageDiv.classList.remove("editing");
+  };
+
+  // Save button
+  editControls.querySelector(".save-btn").onclick = () => {
+    const newText = textarea.value.trim();
+
+    if (!newText) {
+      alert("Message cannot be empty");
+      return;
+    }
+
+    if (newText === originalText) {
+      // No changes made
+      messageContent.innerHTML = originalContent;
+      messageDiv.classList.remove("editing");
+      return;
+    }
+
+    // Delete all messages after this one
+    let nextMessage = messageDiv.nextElementSibling;
+    while (nextMessage) {
+      const toRemove = nextMessage;
+      nextMessage = nextMessage.nextElementSibling;
+      toRemove.remove();
+    }
+
+    // Update conversation history
+    const messageId = messageDiv.getAttribute("data-message-id");
+    const messageIndex = conversationHistory.findIndex(
+      (msg) => msg.role === "user" && msg.timestamp === messageId
+    );
+
+    if (messageIndex !== -1) {
+      // Remove this message and all after it from history
+      conversationHistory = conversationHistory.slice(0, messageIndex);
+    }
+
+    // Update the message content
+    messageContent.textContent = newText;
+    messageDiv.classList.remove("editing");
+
+    // Resend the edited message
+    conversationHistory.push({
+      role: "user",
+      content: newText,
+      timestamp: messageId,
+    });
+
+    showThinking();
+
+    // Send to AI
+    sendEditedMessage(newText);
+  };
+}
+
+// Send edited message to AI
+async function sendEditedMessage(message) {
+  try {
+    const token = localStorage.getItem("synodic_token");
+
+    const response = await fetch(`${API_URL}/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        message: message,
+        history: conversationHistory.slice(-10),
+      }),
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        displaySystemMessage("⚠️ Session expired. Please log in again.");
+        setTimeout(() => logout(), 2000);
+        return;
+      }
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to get response from AI");
+    }
+
+    const data = await response.json();
+
+    hideThinking();
+    displayMessage(data.response, "bot");
+    conversationHistory.push({ role: "assistant", content: data.response });
+
+    if (autoSpeak && voiceEnabled) {
+      setTimeout(() => speakText(data.response), 500);
+    }
+
+    setTimeout(() => {
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }, 100);
+  } catch (error) {
+    hideThinking();
+    console.error("AI Error:", error);
+
+    let errorMessage = "😅 Oops! Something went wrong. ";
+
+    if (error.message.includes("Failed to fetch")) {
+      errorMessage += "Cannot connect to server. Please check your connection.";
+    } else if (error.message.includes("busy")) {
+      errorMessage += "Service is busy. Please try again in a moment.";
+    } else {
+      errorMessage += "Please try again.";
+    }
+
+    displayMessage(errorMessage, "bot");
+  }
+}
+
+// Delete message
+function deleteMessage(messageDiv) {
+  if (
+    !confirm("Delete this message? All messages after it will also be deleted.")
+  ) {
+    return;
+  }
+
+  // Delete all messages after this one
+  let nextMessage = messageDiv.nextElementSibling;
+  while (nextMessage) {
+    const toRemove = nextMessage;
+    nextMessage = nextMessage.nextElementSibling;
+    toRemove.remove();
+  }
+
+  // Remove the message itself
+  messageDiv.style.animation = "fadeOut 0.3s ease-out";
+  setTimeout(() => {
+    messageDiv.remove();
+
+    // Update conversation history
+    const messageId = messageDiv.getAttribute("data-message-id");
+    const messageIndex = conversationHistory.findIndex(
+      (msg) => msg.timestamp === messageId
+    );
+
+    if (messageIndex !== -1) {
+      conversationHistory = conversationHistory.slice(0, messageIndex);
+    }
+
+    // Show welcome message if no messages left
+    if (chatbox.children.length === 0) {
+      chatbox.innerHTML = `
+        <div class="welcome-message">
+          <div class="welcome-icon">🌙</div>
+          <h2>Welcome to Synodic AI</h2>
+          <p>Your cosmic companion for intelligent conversations</p>
+        </div>
+      `;
+    }
+  }, 300);
 }
 
 function showThinking() {
