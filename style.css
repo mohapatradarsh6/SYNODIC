@@ -1199,6 +1199,7 @@ CHATBOX / MESSAGES AREA
   flex: 1;
   max-width: 100%;
 }
+
 .message-content {
   background: rgba(138, 99, 255, 0.08);
   padding: 16px 20px;
@@ -1208,6 +1209,127 @@ CHATBOX / MESSAGES AREA
   word-wrap: break-word;
   font-size: 15px;
 }
+
+/* ADD THESE MARKDOWN STYLES */
+.message-content h1,
+.message-content h2,
+.message-content h3,
+.message-content h4,
+.message-content h5,
+.message-content h6 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #e0e0ff;
+}
+
+.message-content h1 {
+  font-size: 24px;
+}
+.message-content h2 {
+  font-size: 20px;
+}
+.message-content h3 {
+  font-size: 18px;
+}
+
+.message-content p {
+  margin-bottom: 12px;
+}
+
+.message-content ul,
+.message-content ol {
+  margin: 12px 0;
+  padding-left: 24px;
+}
+
+.message-content li {
+  margin-bottom: 6px;
+}
+
+.message-content code {
+  background: rgba(20, 25, 45, 0.8);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "Courier New", monospace;
+  font-size: 14px;
+  color: #a78bfa;
+}
+
+.message-content pre {
+  background: rgba(20, 25, 45, 0.9);
+  border: 1px solid rgba(138, 99, 255, 0.2);
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.message-content pre code {
+  background: transparent;
+  padding: 0;
+  color: #e0e0ff;
+}
+
+.message-content blockquote {
+  border-left: 3px solid rgba(138, 99, 255, 0.5);
+  padding-left: 16px;
+  margin: 12px 0;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.message-content a {
+  color: #60a5fa;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.message-content a:hover {
+  color: #93c5fd;
+  text-decoration: underline;
+}
+
+.message-content strong {
+  font-weight: 600;
+  color: #e0e0ff;
+}
+
+.message-content em {
+  font-style: italic;
+  color: #c4b5fd;
+}
+
+.message-content hr {
+  border: none;
+  border-top: 1px solid rgba(138, 99, 255, 0.2);
+  margin: 16px 0;
+}
+
+.message-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+
+.message-content th,
+.message-content td {
+  border: 1px solid rgba(138, 99, 255, 0.2);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.message-content th {
+  background: rgba(138, 99, 255, 0.1);
+  font-weight: 600;
+}
+
+.message-content img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+
 .message.user .message-content {
   background: rgba(59, 130, 246, 0.12);
   border-color: rgba(59, 130, 246, 0.2);

@@ -9,6 +9,15 @@ const API_URL =
     ? "http://localhost:3000/api"
     : `${window.location.origin}/api`;
 
+if (typeof marked !== "undefined") {
+  marked.setOptions({
+    breaks: true, // Convert \n to <br>
+    gfm: true, // GitHub Flavored Markdown
+    headerIds: false,
+    mangle: false,
+  });
+}
+
 // ========================================
 // AUTHENTICATION STATE
 // ========================================
@@ -1159,7 +1168,15 @@ function displayMessage(text, sender) {
 
   const messageContent = document.createElement("div");
   messageContent.className = "message-content";
-  messageContent.textContent = text;
+  if (sender === "bot" && typeof marked !== "undefined") {
+    // Parse markdown and sanitize HTML
+    const rawHtml = marked.parse(text);
+    const cleanHtml =
+      typeof DOMPurify !== "undefined" ? DOMPurify.sanitize(rawHtml) : rawHtml;
+    messageContent.innerHTML = cleanHtml;
+  } else {
+    messageContent.textContent = text;
+  }
 
   const timestamp = document.createElement("div");
   timestamp.className = "message-timestamp";
@@ -1242,6 +1259,10 @@ function displayMessage(text, sender) {
 
 // Copy message to clipboard
 function copyMessage(text, button) {
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = text;
+  const plainText = tempDiv.textContent || tempDiv.innerText || text;
+
   navigator.clipboard
     .writeText(text)
     .then(() => {
