@@ -112,6 +112,15 @@ document.addEventListener("DOMContentLoaded", () => {
     googleSignupBtn.addEventListener("click", handleGoogleAuth);
   }
 
+  // ADD THIS: Forgot Password Link Handler
+  const forgotLink = document.querySelector(".forgot-link");
+  if (forgotLink) {
+    forgotLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      showForgotPasswordModal();
+    });
+  }
+
   // Logout Button
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) {
@@ -317,6 +326,130 @@ function showAuthSuccess(message) {
   const activeForm = document.querySelector(".auth-form.active");
   if (activeForm) {
     activeForm.insertBefore(successDiv, activeForm.querySelector("form"));
+  }
+}
+
+// Forgot Password Modal
+function showForgotPasswordModal() {
+  const existingModal = document.getElementById("forgotPasswordModal");
+  if (existingModal) {
+    existingModal.remove();
+  }
+
+  const modal = document.createElement("div");
+  modal.id = "forgotPasswordModal";
+  modal.className = "settings-modal active";
+  modal.innerHTML = `
+    <div class="settings-content" style="max-width: 450px;">
+      <div class="settings-header">
+        <h2>🔑 Reset Password</h2>
+        <button class="close-btn" onclick="document.getElementById('forgotPasswordModal').remove()">×</button>
+      </div>
+      
+      <div class="settings-body" id="forgotPasswordStep1">
+        <p style="color: #94a3b8; margin-bottom: 20px;">Enter your email address and we'll send you a reset code.</p>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="forgotEmail" placeholder="your@email.com" class="settings-input" />
+        </div>
+        <button class="settings-btn primary" style="width: 100%;" onclick="requestPasswordReset()">Send Reset Code</button>
+      </div>
+
+      <div class="settings-body" id="forgotPasswordStep2" style="display: none;">
+        <p style="color: #94a3b8; margin-bottom: 20px;">Enter the 6-digit code sent to your email and your new password.</p>
+        <div class="form-group">
+          <label>Reset Code</label>
+          <input type="text" id="resetCode" placeholder="000000" maxlength="6" class="settings-input" />
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" id="newPassword" placeholder="Enter new password" class="settings-input" />
+        </div>
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <input type="password" id="confirmNewPassword" placeholder="Confirm new password" class="settings-input" />
+        </div>
+        <button class="settings-btn primary" style="width: 100%;" onclick="resetPassword()">Reset Password</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+async function requestPasswordReset() {
+  const email = document.getElementById("forgotEmail").value.trim();
+
+  if (!email) {
+    alert("Please enter your email");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/auth/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to send reset code");
+    }
+
+    // Show step 2
+    document.getElementById("forgotPasswordStep1").style.display = "none";
+    document.getElementById("forgotPasswordStep2").style.display = "block";
+
+    // For development - show the code
+    if (data.devCode) {
+      alert(`DEV MODE: Your reset code is ${data.devCode}`);
+    }
+
+    alert("Reset code sent! Check your email (or console in dev mode).");
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function resetPassword() {
+  const email = document.getElementById("forgotEmail").value.trim();
+  const code = document.getElementById("resetCode").value.trim();
+  const newPassword = document.getElementById("newPassword").value;
+  const confirmPassword = document.getElementById("confirmNewPassword").value;
+
+  if (!code || !newPassword || !confirmPassword) {
+    alert("Please fill in all fields");
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    alert("Passwords do not match");
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    alert("Password must be at least 6 characters");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/auth/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, code, newPassword }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to reset password");
+    }
+
+    alert("Password reset successfully! You can now sign in.");
+    document.getElementById("forgotPasswordModal").remove();
+  } catch (error) {
+    alert(error.message);
   }
 }
 
@@ -713,6 +846,47 @@ function initializeChatApp() {
 
   if (settingsBtn) {
     settingsBtn.addEventListener("click", openSettings);
+  }
+  handleMobileKeyboard();
+}
+
+// Fix keyboard covering input on mobile
+function handleMobileKeyboard() {
+  if (window.innerWidth <= 900) {
+    const inputContainer = document.querySelector(".input-container");
+    const chatbox = document.getElementById("chatbox");
+
+    userInput.addEventListener("focus", () => {
+      // Wait for keyboard to appear
+      setTimeout(() => {
+        const viewportHeight = window.visualViewport
+          ? window.visualViewport.height
+          : window.innerHeight;
+        const inputRect = inputContainer.getBoundingClientRect();
+
+        if (inputRect.bottom > viewportHeight) {
+          window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        // Scroll chatbox to bottom
+        if (chatbox) {
+          chatbox.scrollTop = chatbox.scrollHeight;
+        }
+      }, 300);
+    });
+
+    // Listen for viewport changes (keyboard open/close)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", () => {
+        if (document.activeElement === userInput) {
+          setTimeout(() => {
+            if (chatbox) {
+              chatbox.scrollTop = chatbox.scrollHeight;
+            }
+          }, 100);
+        }
+      });
+    }
   }
 }
 

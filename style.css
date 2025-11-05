@@ -1047,8 +1047,10 @@ body {
   align-items: center;
   border-bottom: 1px solid rgba(138, 99, 255, 0.15);
   min-height: 60px;
-  position: sticky;
+  position: fixed; /* Changed from sticky to fixed */
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
   flex-shrink: 0;
 }

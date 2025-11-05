@@ -33,10 +33,39 @@ const JWT_SECRET =
   process.env.JWT_SECRET || "your-secret-key-change-this-in-production";
 
 // ========================================
-// IN-MEMORY USER DATABASE
+// PERSISTENT USER DATABASE (Using JSON file)
 // ========================================
-// In production, use a real database like MongoDB, PostgreSQL, etc.
-const users = [];
+const fs = require("fs");
+const path = require("path");
+
+const DB_FILE = path.join(__dirname, "users.json");
+
+// Initialize database file if it doesn't exist
+if (!fs.existsSync(DB_FILE)) {
+  fs.writeFileSync(DB_FILE, JSON.stringify([]));
+}
+
+// Load users from file
+function loadUsers() {
+  try {
+    const data = fs.readFileSync(DB_FILE, "utf8");
+    return JSON.parse(data);
+  } catch (error) {
+    console.error("Error loading users:", error);
+    return [];
+  }
+}
+
+// Save users to file
+function saveUsers(users) {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(users, null, 2));
+  } catch (error) {
+    console.error("Error saving users:", error);
+  }
+}
+
+let users = loadUsers();
 
 // ========================================
 // AUTHENTICATION MIDDLEWARE
@@ -97,6 +126,7 @@ app.post("/api/auth/signup", async (req, res) => {
     };
 
     users.push(user);
+    saveUsers(users);
 
     // Create JWT token
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
@@ -213,6 +243,98 @@ app.get("/api/auth/verify", authenticateToken, (req, res) => {
       createdAt: user.createdAt,
     },
   });
+});
+
+// Password Reset Request
+app.post("/api/auth/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
+    }
+
+    const users = loadUsers();
+    const user = users.find((u) => u.email === email);
+
+    if (!user) {
+      // Don't reveal if email exists
+      return res.json({
+        message: "If the email exists, a reset code has been sent",
+      });
+    }
+
+    // Generate 6-digit code
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const resetExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes
+
+    user.resetCode = resetCode;
+    user.resetExpiry = resetExpiry;
+    saveUsers(users);
+
+    // In production, send this via email
+    console.log(`Password reset code for ${email}: ${resetCode}`);
+
+    res.json({
+      message: "If the email exists, a reset code has been sent",
+      // Remove this in production - only for testing
+      devCode: resetCode,
+    });
+  } catch (error) {
+    console.error("Password reset error:", error);
+    res.status(500).json({ error: "Failed to process request" });
+  }
+});
+
+// Verify Reset Code and Change Password
+app.post("/api/auth/reset-password", async (req, res) => {
+  try {
+    const { email, code, newPassword } = req.body;
+
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    if (newPassword.length < 6) {
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 6 characters" });
+    }
+
+    const users = loadUsers();
+    const userIndex = users.findIndex((u) => u.email === email);
+
+    if (userIndex === -1) {
+      return res.status(400).json({ error: "Invalid reset code" });
+    }
+
+    const user = users[userIndex];
+
+    if (!user.resetCode || !user.resetExpiry) {
+      return res.status(400).json({ error: "No reset code requested" });
+    }
+
+    if (Date.now() > user.resetExpiry) {
+      return res.status(400).json({ error: "Reset code expired" });
+    }
+
+    if (user.resetCode !== code) {
+      return res.status(400).json({ error: "Invalid reset code" });
+    }
+
+    // Update password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    users[userIndex].password = hashedPassword;
+    users[userIndex].resetCode = null;
+    users[userIndex].resetExpiry = null;
+
+    saveUsers(users);
+
+    res.json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("Password reset error:", error);
+    res.status(500).json({ error: "Failed to reset password" });
+  }
 });
 
 // ========================================
