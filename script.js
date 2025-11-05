@@ -847,46 +847,58 @@ function initializeChatApp() {
   if (settingsBtn) {
     settingsBtn.addEventListener("click", openSettings);
   }
-  handleMobileKeyboard();
+  fixMobileViewport();
 }
 
-// Fix keyboard covering input on mobile
-function handleMobileKeyboard() {
+// Fix mobile viewport and keyboard issues
+function fixMobileViewport() {
   if (window.innerWidth <= 900) {
-    const inputContainer = document.querySelector(".input-container");
+    const chatContainer = document.getElementById("chatContainer");
     const chatbox = document.getElementById("chatbox");
+    const inputContainer = document.querySelector(".input-container");
 
+    // Prevent body scroll when input is focused
     userInput.addEventListener("focus", () => {
-      // Wait for keyboard to appear
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+
       setTimeout(() => {
-        const viewportHeight = window.visualViewport
-          ? window.visualViewport.height
-          : window.innerHeight;
-        const inputRect = inputContainer.getBoundingClientRect();
-
-        if (inputRect.bottom > viewportHeight) {
-          window.scrollTo(0, document.body.scrollHeight);
-        }
-
-        // Scroll chatbox to bottom
         if (chatbox) {
           chatbox.scrollTop = chatbox.scrollHeight;
         }
       }, 300);
     });
 
-    // Listen for viewport changes (keyboard open/close)
+    userInput.addEventListener("blur", () => {
+      document.body.style.position = "";
+      document.body.style.width = "";
+    });
+
+    // Handle visual viewport changes (keyboard open/close)
     if (window.visualViewport) {
       window.visualViewport.addEventListener("resize", () => {
-        if (document.activeElement === userInput) {
+        const viewportHeight = window.visualViewport.height;
+
+        if (chatContainer) {
+          chatContainer.style.height = `${viewportHeight}px`;
+        }
+
+        // Scroll to bottom when keyboard opens
+        if (document.activeElement === userInput && chatbox) {
           setTimeout(() => {
-            if (chatbox) {
-              chatbox.scrollTop = chatbox.scrollHeight;
-            }
+            chatbox.scrollTop = chatbox.scrollHeight;
           }, 100);
         }
       });
     }
+
+    // Prevent zoom on input focus
+    const inputs = document.querySelectorAll("input, textarea");
+    inputs.forEach((input) => {
+      input.addEventListener("focus", () => {
+        input.style.fontSize = "16px"; // Prevents zoom on iOS
+      });
+    });
   }
 }
 
