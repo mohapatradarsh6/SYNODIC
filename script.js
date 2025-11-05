@@ -639,6 +639,99 @@ function stopSpeaking() {
   }
 }
 
+// Toggle speak/stop for message
+function toggleSpeak(text, button) {
+  const isSpeaking = button.getAttribute("data-speaking") === "true";
+
+  if (isSpeaking) {
+    // Stop speaking
+    stopSpeaking();
+    button.setAttribute("data-speaking", "false");
+    button.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+      </svg>
+      <span>Speak</span>
+    `;
+    button.classList.remove("speaking");
+  } else {
+    // Start speaking
+    if (!voiceEnabled || !synthesis) return;
+
+    // Stop any other speech first
+    synthesis.cancel();
+
+    // Reset all other speaker buttons
+    document.querySelectorAll(".speaker-btn").forEach((btn) => {
+      btn.setAttribute("data-speaking", "false");
+      btn.classList.remove("speaking");
+      btn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+        </svg>
+        <span>Speak</span>
+      `;
+    });
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    utterance.lang = "en-US";
+
+    const voices = synthesis.getVoices();
+    const preferredVoice = voices.find(
+      (voice) =>
+        voice.lang.startsWith("en") &&
+        (voice.name.includes("Google") || voice.name.includes("Microsoft"))
+    );
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
+    }
+
+    utterance.onstart = () => {
+      button.setAttribute("data-speaking", "true");
+      button.classList.add("speaking");
+      button.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="6" y="4" width="4" height="16"></rect>
+          <rect x="14" y="4" width="4" height="16"></rect>
+        </svg>
+        <span>Stop</span>
+      `;
+    };
+
+    utterance.onend = () => {
+      button.setAttribute("data-speaking", "false");
+      button.classList.remove("speaking");
+      button.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+        </svg>
+        <span>Speak</span>
+      `;
+    };
+
+    utterance.onerror = (event) => {
+      console.error("Speech synthesis error:", event.error);
+      button.setAttribute("data-speaking", "false");
+      button.classList.remove("speaking");
+      button.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+        </svg>
+        <span>Speak</span>
+      `;
+    };
+
+    synthesis.speak(utterance);
+  }
+}
+
 // ========================================
 // SETTINGS MODAL
 // ========================================
@@ -1121,6 +1214,7 @@ function displayMessage(text, sender) {
   if (sender === "bot" && voiceEnabled) {
     const speakerBtn = document.createElement("button");
     speakerBtn.className = "action-btn speaker-btn";
+    speakerBtn.setAttribute("data-speaking", "false");
     speakerBtn.innerHTML = `
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
@@ -1128,7 +1222,7 @@ function displayMessage(text, sender) {
       </svg>
       <span>Speak</span>
     `;
-    speakerBtn.onclick = () => speakText(text);
+    speakerBtn.onclick = () => toggleSpeak(text, speakerBtn);
     actionsDiv.appendChild(speakerBtn);
   }
 
