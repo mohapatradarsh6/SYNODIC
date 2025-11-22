@@ -755,8 +755,9 @@ function toggleSpeak(text, button) {
 // ========================================
 // SETTINGS MODAL
 // ========================================
-
 function createSettingsModal() {
+  const isDarkMode = !document.body.classList.contains("light-mode");
+
   const modal = document.createElement("div");
   modal.className = "settings-modal";
   modal.id = "settingsModal";
@@ -786,11 +787,20 @@ function createSettingsModal() {
 
         <div class="settings-section">
           <h3>🎨 Appearance</h3>
-          <label class="settings-toggle">
-            <input type="checkbox" id="darkModeToggle" checked>
-            <span class="toggle-slider"></span>
-            <span class="toggle-label">Dark Mode</span>
-          </label>
+          <div class="theme-toggle-container" id="themeToggleContainer">
+            <div class="theme-option ${
+              isDarkMode ? "active" : ""
+            }" data-theme="dark">
+              <span class="theme-icon">🌙</span>
+              <span class="theme-label">Dark Mode</span>
+            </div>
+            <div class="theme-option ${
+              !isDarkMode ? "active" : ""
+            }" data-theme="light">
+              <span class="theme-icon">☀️</span>
+              <span class="theme-label">Light Mode</span>
+            </div>
+          </div>
         </div>
 
         <div class="settings-section">
@@ -806,15 +816,27 @@ function createSettingsModal() {
     </div>
   `;
   document.body.appendChild(modal);
+
+  // Add theme toggle click handlers
+  const themeOptions = modal.querySelectorAll(".theme-option");
+  themeOptions.forEach((option) => {
+    option.addEventListener("click", () => {
+      themeOptions.forEach((opt) => opt.classList.remove("active"));
+      option.classList.add("active");
+    });
+  });
+
   loadSettings();
 }
 
 function openSettings() {
-  let modal = document.getElementById("settingsModal");
-  if (!modal) {
-    createSettingsModal();
-    modal = document.getElementById("settingsModal");
+  const existingModal = document.getElementById("settingsModal");
+  if (existingModal) {
+    existingModal.remove();
   }
+
+  createSettingsModal();
+  const modal = document.getElementById("settingsModal");
   modal.classList.add("active");
 }
 
@@ -828,36 +850,31 @@ function closeSettings() {
 function saveSettings() {
   const voiceToggle = document.getElementById("voiceToggle").checked;
   const autoSpeakToggle = document.getElementById("autoSpeakToggle").checked;
-  const darkMode = document.getElementById("darkModeToggle").checked;
+
+  // Get selected theme from the theme options
+  const selectedTheme = document.querySelector(".theme-option.active");
+  const isDarkMode = selectedTheme
+    ? selectedTheme.dataset.theme === "dark"
+    : true;
 
   localStorage.setItem("synodic_voice", voiceToggle);
   localStorage.setItem("synodic_autospeak", autoSpeakToggle);
-  localStorage.setItem("synodic_darkmode", darkMode);
+  localStorage.setItem("synodic_darkmode", isDarkMode);
 
   voiceEnabled = voiceToggle;
   autoSpeak = autoSpeakToggle;
+
+  // Apply theme
+  if (isDarkMode) {
+    document.body.classList.remove("light-mode");
+  } else {
+    document.body.classList.add("light-mode");
+  }
 
   updateVoiceButtonState();
 
   displaySystemMessage("✅ Settings saved successfully!");
   closeSettings();
-}
-
-function loadSettings() {
-  voiceEnabled = localStorage.getItem("synodic_voice") === "true";
-  autoSpeak = localStorage.getItem("synodic_autospeak") === "true";
-
-  const voiceCheckbox = document.getElementById("voiceToggle");
-  const autoSpeakCheckbox = document.getElementById("autoSpeakToggle");
-  const darkModeCheckbox = document.getElementById("darkModeToggle");
-
-  if (voiceCheckbox) voiceCheckbox.checked = voiceEnabled;
-  if (autoSpeakCheckbox) autoSpeakCheckbox.checked = autoSpeak;
-  if (darkModeCheckbox)
-    darkModeCheckbox.checked =
-      localStorage.getItem("synodic_darkmode") !== "false";
-
-  updateVoiceButtonState();
 }
 
 // ========================================
@@ -962,29 +979,20 @@ function initializeChatApp() {
       }
     });
   }
-
-  if (themeToggle) {
-    themeToggle.addEventListener("click", () => {
-      document.body.classList.toggle("light-mode");
-      const isLight = document.body.classList.contains("light-mode");
-      localStorage.setItem("synodic_darkmode", !isLight);
-      updateThemeIcon(isLight);
-    });
-
-    // Load saved theme preference on startup
-    const savedDarkMode = localStorage.getItem("synodic_darkmode");
-    if (savedDarkMode === "false") {
-      document.body.classList.add("light-mode");
-      updateThemeIcon(true);
-    }
+  // Load saved theme preference on startup
+  const savedDarkMode = localStorage.getItem("synodic_darkmode");
+  if (savedDarkMode === "false") {
+    document.body.classList.add("light-mode");
+    updateThemeIcon(true);
   }
+}
 
-  // Update theme toggle icon
-  function updateThemeIcon(isLight) {
-    const themeToggle = document.getElementById("themeToggle");
-    if (themeToggle) {
-      if (isLight) {
-        themeToggle.innerHTML = `
+// Update theme toggle icon
+function updateThemeIcon(isLight) {
+  const themeToggle = document.getElementById("themeToggle");
+  if (themeToggle) {
+    if (isLight) {
+      themeToggle.innerHTML = `
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="5"></circle>
           <line x1="12" y1="1" x2="12" y2="3"></line>
@@ -997,38 +1005,37 @@ function initializeChatApp() {
           <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
         </svg>
       `;
-      } else {
-        themeToggle.innerHTML = `
+    } else {
+      themeToggle.innerHTML = `
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
         </svg>
       `;
-      }
     }
   }
-
-  // File Input & Attach Button
-  const fileInput = document.getElementById("fileInput");
-  if (attachBtn && fileInput) {
-    attachBtn.addEventListener("click", () => {
-      fileInput.click();
-    });
-    fileInput.addEventListener("change", handleFileSelect);
-  }
-
-  // Drag and drop
-  const chatContainer = document.getElementById("chatContainer");
-  if (chatContainer) {
-    chatContainer.addEventListener("dragover", handleDragOver);
-    chatContainer.addEventListener("dragleave", handleDragLeave);
-    chatContainer.addEventListener("drop", handleDrop);
-  }
-
-  if (settingsBtn) {
-    settingsBtn.addEventListener("click", openSettings);
-  }
-  fixMobileViewport();
 }
+
+// File Input & Attach Button
+const fileInput = document.getElementById("fileInput");
+if (attachBtn && fileInput) {
+  attachBtn.addEventListener("click", () => {
+    fileInput.click();
+  });
+  fileInput.addEventListener("change", handleFileSelect);
+}
+
+// Drag and drop
+const chatContainer = document.getElementById("chatContainer");
+if (chatContainer) {
+  chatContainer.addEventListener("dragover", handleDragOver);
+  chatContainer.addEventListener("dragleave", handleDragLeave);
+  chatContainer.addEventListener("drop", handleDrop);
+}
+
+if (settingsBtn) {
+  settingsBtn.addEventListener("click", openSettings);
+}
+fixMobileViewport();
 
 // Fix mobile viewport and keyboard issues
 function fixMobileViewport() {
@@ -1100,34 +1107,42 @@ function createExportModal() {
         <div class="export-option" onclick="exportChat('txt')">
           <div class="export-option-icon">📄</div>
           <div class="export-option-info">
-            <h3>Plain Text (.txt)</h3>
-            <p>Simple text format, easy to read</p>
+            <h3>Plain Text</h3>
+            <p>Simple .txt format</p>
           </div>
         </div>
         <div class="export-option" onclick="exportChat('json')">
           <div class="export-option-icon">📋</div>
           <div class="export-option-info">
-            <h3>JSON (.json)</h3>
-            <p>Structured data, includes metadata</p>
+            <h3>JSON</h3>
+            <p>Structured data</p>
           </div>
         </div>
         <div class="export-option" onclick="exportChat('md')">
           <div class="export-option-icon">📝</div>
           <div class="export-option-info">
-            <h3>Markdown (.md)</h3>
-            <p>Formatted text with styling</p>
+            <h3>Markdown</h3>
+            <p>Formatted text</p>
           </div>
         </div>
         <div class="export-option" onclick="exportChat('html')">
           <div class="export-option-icon">🌐</div>
           <div class="export-option-info">
-            <h3>HTML (.html)</h3>
-            <p>Viewable in any browser</p>
+            <h3>HTML</h3>
+            <p>View in browser</p>
           </div>
         </div>
       </div>
     </div>
   `;
+
+  // Close modal when clicking outside
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      closeExportModal();
+    }
+  });
+
   document.body.appendChild(modal);
 }
 
@@ -1687,9 +1702,18 @@ async function sendMessage() {
       setTimeout(() => speakText(data.response), 500);
     }
 
-    setTimeout(() => {
-      chatbox.scrollTop = chatbox.scrollHeight;
-    }, 100);
+    // Scroll to bottom - works on mobile too
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const chatbox = document.getElementById("chatbox");
+        if (chatbox) {
+          chatbox.scrollTo({
+            top: chatbox.scrollHeight,
+            behavior: "smooth",
+          });
+        }
+      }, 150);
+    });
   } catch (error) {
     hideThinking();
     console.error("AI Error:", error);
@@ -1803,8 +1827,12 @@ async function typeMessage(element, text, isMarkdown = false) {
 
         // Scroll to keep typing visible
         const chatbox = document.getElementById("chatbox");
-        chatbox.scrollTop = chatbox.scrollHeight;
-
+        if (chatbox) {
+          chatbox.scrollTo({
+            top: chatbox.scrollHeight,
+            behavior: "auto",
+          });
+        }
         // Variable speed: faster for spaces, slower for punctuation
         let delay = speed;
         if (text[i] === " ") delay = speed / 2;
@@ -2050,9 +2078,18 @@ function displayMessage(text, sender, attachments = []) {
   if (sender === "bot") {
     typeMessage(messageContent, text, true);
   }
-  setTimeout(() => {
-    chatbox.scrollTop = chatbox.scrollHeight;
-  }, 100);
+  // Scroll to bottom - works on mobile too
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      const chatbox = document.getElementById("chatbox");
+      if (chatbox) {
+        chatbox.scrollTo({
+          top: chatbox.scrollHeight,
+          behavior: "smooth",
+        });
+      }
+    }, 100);
+  });
 }
 
 // Copy message to clipboard
