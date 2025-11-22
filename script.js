@@ -979,12 +979,34 @@ function initializeChatApp() {
       }
     });
   }
+  // File Input & Attach Button - MOVED INSIDE
+  const fileInput = document.getElementById("fileInput");
+  if (attachBtn && fileInput) {
+    attachBtn.addEventListener("click", () => {
+      fileInput.click();
+    });
+    fileInput.addEventListener("change", handleFileSelect);
+  }
+
+  // Drag and drop - MOVED INSIDE
+  const chatContainer = document.getElementById("chatContainer");
+  if (chatContainer) {
+    chatContainer.addEventListener("dragover", handleDragOver);
+    chatContainer.addEventListener("dragleave", handleDragLeave);
+    chatContainer.addEventListener("drop", handleDrop);
+  }
+  // Settings Button - MOVED INSIDE
+  if (settingsBtn) {
+    settingsBtn.addEventListener("click", openSettings);
+  }
   // Load saved theme preference on startup
   const savedDarkMode = localStorage.getItem("synodic_darkmode");
   if (savedDarkMode === "false") {
     document.body.classList.add("light-mode");
     updateThemeIcon(true);
   }
+
+  fixMobileViewport();
 }
 
 // Update theme toggle icon
@@ -1014,28 +1036,6 @@ function updateThemeIcon(isLight) {
     }
   }
 }
-
-// File Input & Attach Button
-const fileInput = document.getElementById("fileInput");
-if (attachBtn && fileInput) {
-  attachBtn.addEventListener("click", () => {
-    fileInput.click();
-  });
-  fileInput.addEventListener("change", handleFileSelect);
-}
-
-// Drag and drop
-const chatContainer = document.getElementById("chatContainer");
-if (chatContainer) {
-  chatContainer.addEventListener("dragover", handleDragOver);
-  chatContainer.addEventListener("dragleave", handleDragLeave);
-  chatContainer.addEventListener("drop", handleDrop);
-}
-
-if (settingsBtn) {
-  settingsBtn.addEventListener("click", openSettings);
-}
-fixMobileViewport();
 
 // Fix mobile viewport and keyboard issues
 function fixMobileViewport() {
