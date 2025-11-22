@@ -1298,7 +1298,8 @@ async function typeMessage(element, text, isMarkdown = false) {
         element.innerHTML = cleanPartial;
 
         // Scroll to keep typing visible
-        element.scrollIntoView({ behavior: "smooth", block: "end" });
+        const chatbox = document.getElementById("chatbox");
+        chatbox.scrollTop = chatbox.scrollHeight;
 
         // Variable speed: faster for spaces, slower for punctuation
         let delay = speed;
