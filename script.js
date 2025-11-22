@@ -1356,6 +1356,12 @@ async function sendMessage() {
       body: JSON.stringify({
         message: message,
         history: conversationHistory.slice(-10),
+        attachments: filesToSend.map((f) => ({
+          name: f.name,
+          type: f.type,
+          isImage: f.isImage,
+          base64: f.base64,
+        })),
       }),
     });
 
