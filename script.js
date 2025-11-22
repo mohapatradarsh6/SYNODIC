@@ -893,6 +893,17 @@ function initializeChatApp() {
     sendBtn.addEventListener("click", sendMessage);
   }
 
+  // Export Chat Button
+  const exportChatBtn = document.getElementById("exportChatBtn");
+  if (exportChatBtn) {
+    exportChatBtn.addEventListener("click", () => {
+      openExportModal();
+      // Close sidebar on mobile after clicking
+      sidebar.classList.remove("active");
+      overlay.classList.remove("active");
+    });
+  }
+
   if (userInput) {
     userInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -957,7 +968,43 @@ function initializeChatApp() {
       document.body.classList.toggle("light-mode");
       const isLight = document.body.classList.contains("light-mode");
       localStorage.setItem("synodic_darkmode", !isLight);
+      updateThemeIcon(isLight);
     });
+
+    // Load saved theme preference on startup
+    const savedDarkMode = localStorage.getItem("synodic_darkmode");
+    if (savedDarkMode === "false") {
+      document.body.classList.add("light-mode");
+      updateThemeIcon(true);
+    }
+  }
+
+  // Update theme toggle icon
+  function updateThemeIcon(isLight) {
+    const themeToggle = document.getElementById("themeToggle");
+    if (themeToggle) {
+      if (isLight) {
+        themeToggle.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      `;
+      } else {
+        themeToggle.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      `;
+      }
+    }
   }
 
   // File Input & Attach Button
@@ -1033,6 +1080,260 @@ function fixMobileViewport() {
       });
     });
   }
+}
+
+// ========================================
+// EXPORT CHAT FUNCTIONALITY
+// ========================================
+
+function createExportModal() {
+  const modal = document.createElement("div");
+  modal.className = "export-modal";
+  modal.id = "exportModal";
+  modal.innerHTML = `
+    <div class="export-content">
+      <div class="export-header">
+        <h2>📥 Export Chat</h2>
+        <button class="close-btn" onclick="closeExportModal()">×</button>
+      </div>
+      <div class="export-body">
+        <div class="export-option" onclick="exportChat('txt')">
+          <div class="export-option-icon">📄</div>
+          <div class="export-option-info">
+            <h3>Plain Text (.txt)</h3>
+            <p>Simple text format, easy to read</p>
+          </div>
+        </div>
+        <div class="export-option" onclick="exportChat('json')">
+          <div class="export-option-icon">📋</div>
+          <div class="export-option-info">
+            <h3>JSON (.json)</h3>
+            <p>Structured data, includes metadata</p>
+          </div>
+        </div>
+        <div class="export-option" onclick="exportChat('md')">
+          <div class="export-option-icon">📝</div>
+          <div class="export-option-info">
+            <h3>Markdown (.md)</h3>
+            <p>Formatted text with styling</p>
+          </div>
+        </div>
+        <div class="export-option" onclick="exportChat('html')">
+          <div class="export-option-icon">🌐</div>
+          <div class="export-option-info">
+            <h3>HTML (.html)</h3>
+            <p>Viewable in any browser</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function openExportModal() {
+  if (conversationHistory.length === 0) {
+    displaySystemMessage("⚠️ No messages to export yet!");
+    return;
+  }
+
+  let modal = document.getElementById("exportModal");
+  if (!modal) {
+    createExportModal();
+    modal = document.getElementById("exportModal");
+  }
+  modal.classList.add("active");
+}
+
+function closeExportModal() {
+  const modal = document.getElementById("exportModal");
+  if (modal) {
+    modal.classList.remove("active");
+  }
+}
+
+function exportChat(format) {
+  if (conversationHistory.length === 0) {
+    displaySystemMessage("⚠️ No messages to export!");
+    closeExportModal();
+    return;
+  }
+
+  const timestamp = new Date().toISOString().slice(0, 19).replace(/[:-]/g, "");
+  let content = "";
+  let filename = `synodic-chat-${timestamp}`;
+  let mimeType = "text/plain";
+
+  switch (format) {
+    case "txt":
+      content = exportToTxt();
+      filename += ".txt";
+      mimeType = "text/plain";
+      break;
+    case "json":
+      content = exportToJson();
+      filename += ".json";
+      mimeType = "application/json";
+      break;
+    case "md":
+      content = exportToMarkdown();
+      filename += ".md";
+      mimeType = "text/markdown";
+      break;
+    case "html":
+      content = exportToHtml();
+      filename += ".html";
+      mimeType = "text/html";
+      break;
+  }
+
+  downloadFile(content, filename, mimeType);
+  closeExportModal();
+  displaySystemMessage(`✅ Chat exported as ${filename}`);
+}
+
+function exportToTxt() {
+  let output = "=".repeat(50) + "\n";
+  output += "SYNODIC AI - Chat Export\n";
+  output += `Exported: ${new Date().toLocaleString()}\n`;
+  output += "=".repeat(50) + "\n\n";
+
+  conversationHistory.forEach((msg, index) => {
+    const role = msg.role === "user" ? "You" : "Synodic AI";
+    output += `[${role}]\n`;
+    output += `${msg.content}\n\n`;
+    output += "-".repeat(30) + "\n\n";
+  });
+
+  return output;
+}
+
+function exportToJson() {
+  const exportData = {
+    app: "Synodic AI",
+    version: "4.5",
+    exportDate: new Date().toISOString(),
+    user: currentUser ? currentUser.name : "Anonymous",
+    messageCount: conversationHistory.length,
+    messages: conversationHistory.map((msg, index) => ({
+      id: index + 1,
+      role: msg.role,
+      content: msg.content,
+      timestamp: msg.timestamp || null,
+    })),
+  };
+
+  return JSON.stringify(exportData, null, 2);
+}
+
+function exportToMarkdown() {
+  let output = "# Synodic AI - Chat Export\n\n";
+  output += `**Exported:** ${new Date().toLocaleString()}\n\n`;
+  output += "---\n\n";
+
+  conversationHistory.forEach((msg) => {
+    const role = msg.role === "user" ? "👤 **You**" : "🌙 **Synodic AI**";
+    output += `### ${role}\n\n`;
+    output += `${msg.content}\n\n`;
+    output += "---\n\n";
+  });
+
+  return output;
+}
+
+function exportToHtml() {
+  let messagesHtml = "";
+
+  conversationHistory.forEach((msg) => {
+    const isUser = msg.role === "user";
+    const bgColor = isUser ? "#3b82f620" : "#8b5cf620";
+    const borderColor = isUser ? "#3b82f640" : "#8b5cf640";
+    const avatar = isUser ? "👤" : "🌙";
+    const role = isUser ? "You" : "Synodic AI";
+
+    messagesHtml += `
+      <div style="display: flex; gap: 16px; margin-bottom: 24px; ${
+        isUser ? "flex-direction: row-reverse;" : ""
+      }">
+        <div style="width: 40px; height: 40px; border-radius: 50%; background: ${
+          isUser
+            ? "linear-gradient(135deg, #3b82f6, #2563eb)"
+            : "linear-gradient(135deg, #8b5cf6, #6366f1)"
+        }; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
+          ${avatar}
+        </div>
+        <div style="flex: 1;">
+          <div style="font-weight: 600; color: #a78bfa; margin-bottom: 8px;">${role}</div>
+          <div style="background: ${bgColor}; border: 1px solid ${borderColor}; padding: 16px 20px; border-radius: 16px; line-height: 1.6;">
+            ${msg.content.replace(/\n/g, "<br>")}
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Synodic AI - Chat Export</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f1419;
+      color: #e0e0ff;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(138, 99, 255, 0.2);
+    }
+    .header h1 {
+      font-size: 32px;
+      background: linear-gradient(135deg, #a78bfa, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .header p {
+      color: #94a3b8;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🌙 Synodic AI</h1>
+      <p>Chat Export - ${new Date().toLocaleString()}</p>
+    </div>
+    <div class="messages">
+      ${messagesHtml}
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 // ========================================
 // FILE HANDLING FUNCTIONS
