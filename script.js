@@ -1096,6 +1096,7 @@ async function sendMessage() {
           element.innerHTML = cleanPartial;
 
           // Scroll to keep typing visible
+          const chatbox = document.getElementById("chatbox");
           chatbox.scrollTop = chatbox.scrollHeight;
 
           // Variable speed: faster for spaces, slower for punctuation
@@ -1519,7 +1520,7 @@ function displayMessage(text, sender) {
     typeMessage(messageContent, text, true);
   }
   setTimeout(() => {
-    messageDiv.scrollIntoView({ behavior: "smooth", block: "end" });
+    chatbox.scrollTop = chatbox.scrollHeight;
   }, 100);
 }
 
