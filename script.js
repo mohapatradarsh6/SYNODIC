@@ -1096,7 +1096,7 @@ async function sendMessage() {
           element.innerHTML = cleanPartial;
 
           // Scroll to keep typing visible
-          element.scrollIntoView({ behavior: "smooth", block: "end" });
+          chatbox.scrollTop = chatbox.scrollHeight;
 
           // Variable speed: faster for spaces, slower for punctuation
           let delay = speed;
