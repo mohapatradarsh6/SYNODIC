@@ -526,10 +526,13 @@ async function callGemini(message, history) {
 
 app.post("/api/chat", authenticateToken, async (req, res) => {
   try {
-    const { message, history = [] } = req.body;
+    const { message, history = [], attachments = [] } = req.body;
 
     // Validation
-    if (!message || typeof message !== "string") {
+    if (
+      (!message || typeof message !== "string") &&
+      (!attachments || attachments.length === 0)
+    ) {
       return res.status(400).json({ error: "Invalid message" });
     }
 
@@ -547,22 +550,40 @@ app.post("/api/chat", authenticateToken, async (req, res) => {
 
     // Keep only last 10 messages for context
     const recentHistory = history.slice(-10);
+    // Build message with attachment context
+    let fullMessage = message || "";
 
+    if (attachments && attachments.length > 0) {
+      const fileDescriptions = attachments
+        .map((a) => {
+          if (a.isImage) {
+            return `[User attached an image: ${a.name}]`;
+          }
+          return `[User attached a file: ${a.name} (${a.type})]`;
+        })
+        .join("\n");
+
+      if (fullMessage) {
+        fullMessage = `${fileDescriptions}\n\nUser's message: ${fullMessage}`;
+      } else {
+        fullMessage = `${fileDescriptions}\n\nPlease acknowledge the attached file(s).`;
+      }
+    }
     let response;
 
     // Route to appropriate AI provider
     switch (AI_CONFIG.provider) {
       case "openai":
-        response = await callOpenAI(message, recentHistory);
+        response = await callOpenAI(fullMessage, recentHistory);
         break;
       case "claude":
-        response = await callClaude(message, recentHistory);
+        response = await callClaude(fullMessage, recentHistory);
         break;
       case "gemini":
-        response = await callGemini(message, recentHistory);
+        response = await callGemini(fullMessage, recentHistory);
         break;
       case "huggingface":
-        response = await callHuggingFace(message, recentHistory);
+        response = await callHuggingFace(fullMessage,, recentHistory);
         break;
       default:
         throw new Error("Invalid AI provider configured");

@@ -865,7 +865,16 @@ function loadSettings() {
 // ========================================
 
 let conversationHistory = [];
-
+// ========================================
+// FILE UPLOAD STATE
+// ========================================
+let attachedFiles = [];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILES = 5;
+const ALLOWED_TYPES = {
+  image: ["image/jpeg", "image/png", "image/gif", "image/webp"],
+  document: ["application/pdf", "text/plain", "text/csv", "application/json"],
+};
 function initializeChatApp() {
   console.log("Synodic AI Chatbot initialized");
 
@@ -951,10 +960,21 @@ function initializeChatApp() {
     });
   }
 
-  if (attachBtn) {
+  // File Input & Attach Button
+  const fileInput = document.getElementById("fileInput");
+  if (attachBtn && fileInput) {
     attachBtn.addEventListener("click", () => {
-      alert("File attachment coming soon! 📎");
+      fileInput.click();
     });
+    fileInput.addEventListener("change", handleFileSelect);
+  }
+
+  // Drag and drop
+  const chatContainer = document.getElementById("chatContainer");
+  if (chatContainer) {
+    chatContainer.addEventListener("dragover", handleDragOver);
+    chatContainer.addEventListener("dragleave", handleDragLeave);
+    chatContainer.addEventListener("drop", handleDrop);
   }
 
   if (settingsBtn) {
@@ -1014,11 +1034,185 @@ function fixMobileViewport() {
     });
   }
 }
+// ========================================
+// FILE HANDLING FUNCTIONS
+// ========================================
+
+function handleFileSelect(e) {
+  const files = Array.from(e.target.files);
+  processFiles(files);
+  e.target.value = "";
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!document.querySelector(".drag-overlay")) {
+    const overlay = document.createElement("div");
+    overlay.className = "drag-overlay";
+    overlay.innerHTML = `
+      <div class="drag-overlay-content">
+        <div class="drag-icon">📎</div>
+        <p>Drop files here</p>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+  }
+}
+
+function handleDragLeave(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const overlay = document.querySelector(".drag-overlay");
+  if (overlay && !e.relatedTarget) {
+    overlay.remove();
+  }
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  const overlay = document.querySelector(".drag-overlay");
+  if (overlay) overlay.remove();
+  const files = Array.from(e.dataTransfer.files);
+  processFiles(files);
+}
+
+function processFiles(files) {
+  for (const file of files) {
+    if (attachedFiles.length >= MAX_FILES) {
+      displaySystemMessage(`⚠️ Maximum ${MAX_FILES} files allowed`);
+      break;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      displaySystemMessage(`⚠️ File "${file.name}" is too large (max 10MB)`);
+      continue;
+    }
+    const isImage = ALLOWED_TYPES.image.includes(file.type);
+    const isDocument = ALLOWED_TYPES.document.includes(file.type);
+    if (!isImage && !isDocument) {
+      displaySystemMessage(
+        `⚠️ File type not supported: ${file.type || "unknown"}`
+      );
+      continue;
+    }
+    if (
+      attachedFiles.some((f) => f.name === file.name && f.size === file.size)
+    ) {
+      displaySystemMessage(`⚠️ File "${file.name}" already attached`);
+      continue;
+    }
+    const fileData = {
+      file: file,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      isImage: isImage,
+      id: Date.now() + Math.random().toString(36).substr(2, 9),
+    };
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        fileData.preview = e.target.result;
+        fileData.base64 = e.target.result.split(",")[1];
+        updateFilePreview();
+      };
+      reader.readAsDataURL(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        fileData.base64 = btoa(e.target.result);
+        updateFilePreview();
+      };
+      reader.readAsBinaryString(file);
+    }
+    attachedFiles.push(fileData);
+  }
+  updateFilePreview();
+}
+
+function updateFilePreview() {
+  const container = document.getElementById("filePreviewContainer");
+  if (!container) return;
+  container.innerHTML = attachedFiles
+    .map((file) => {
+      if (file.isImage && file.preview) {
+        return `
+        <div class="file-preview-item image-preview" data-id="${file.id}">
+          <img src="${file.preview}" alt="${file.name}" />
+          <div class="file-info">
+            <span class="file-name">${file.name}</span>
+            <span class="file-size">${formatFileSize(file.size)}</span>
+          </div>
+          <button class="remove-file-btn" onclick="removeFile('${
+            file.id
+          }')">×</button>
+        </div>
+      `;
+      } else {
+        return `
+        <div class="file-preview-item" data-id="${file.id}">
+          <div class="file-icon">${getFileIcon(file.type)}</div>
+          <div class="file-info">
+            <span class="file-name">${file.name}</span>
+            <span class="file-size">${formatFileSize(file.size)}</span>
+          </div>
+          <button class="remove-file-btn" onclick="removeFile('${
+            file.id
+          }')">×</button>
+        </div>
+      `;
+      }
+    })
+    .join("");
+}
+
+function removeFile(id) {
+  attachedFiles = attachedFiles.filter((f) => f.id !== id);
+  updateFilePreview();
+}
+
+function getFileIcon(type) {
+  if (type.includes("pdf")) return "📄";
+  if (type.includes("text")) return "📝";
+  if (type.includes("csv")) return "📊";
+  if (type.includes("json")) return "📋";
+  return "📎";
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function clearAttachedFiles() {
+  attachedFiles = [];
+  updateFilePreview();
+}
+
+function openLightbox(src) {
+  const lightbox = document.createElement("div");
+  lightbox.className = "image-lightbox";
+  lightbox.innerHTML = `
+    <button class="lightbox-close">×</button>
+    <img src="${src}" alt="Full size image" />
+  `;
+  lightbox.addEventListener("click", (e) => {
+    if (
+      e.target === lightbox ||
+      e.target.classList.contains("lightbox-close")
+    ) {
+      lightbox.remove();
+    }
+  });
+  document.body.appendChild(lightbox);
+}
 
 async function sendMessage() {
   const message = userInput.value.trim();
 
-  if (message === "") {
+  if (message === "" && attachedFiles.length === 0) {
     shakeInput();
     return;
   }
@@ -1039,9 +1233,12 @@ async function sendMessage() {
 
   stopSpeaking();
 
+  const filesToSend = [...attachedFiles];
+
   userInput.value = "";
   userInput.style.height = "auto";
   userInput.focus();
+  clearAttachedFiles();
 
   const welcomeMsg = chatbox.querySelector(".welcome-message");
   if (welcomeMsg) {
@@ -1138,7 +1335,7 @@ async function sendMessage() {
     }
   }
 
-  displayMessage(message, "user");
+  displayMessage(message, "user", filesToSend);
   conversationHistory.push({
     role: "user",
     content: message,
@@ -1415,7 +1612,7 @@ function addCodeBlockFeatures(container) {
   });
 }
 
-function displayMessage(text, sender) {
+function displayMessage(text, sender, attachments = []) {
   const messageDiv = document.createElement("div");
   messageDiv.className = `message ${sender}`;
   messageDiv.setAttribute("data-message-id", Date.now()); // Add unique ID
@@ -1426,7 +1623,33 @@ function displayMessage(text, sender) {
 
   const bubbleDiv = document.createElement("div");
   bubbleDiv.className = "message-bubble";
-
+  // Add attachments if present
+  if (attachments && attachments.length > 0) {
+    const attachmentsDiv = document.createElement("div");
+    attachmentsDiv.className = "message-attachments";
+    attachments.forEach((file) => {
+      const attachmentDiv = document.createElement("div");
+      if (file.isImage && (file.preview || file.base64)) {
+        attachmentDiv.className = "message-attachment image-attachment";
+        const img = document.createElement("img");
+        img.src = file.preview || `data:${file.type};base64,${file.base64}`;
+        img.alt = file.name;
+        img.onclick = () => openLightbox(img.src);
+        attachmentDiv.appendChild(img);
+      } else {
+        attachmentDiv.className = "message-attachment file-attachment";
+        attachmentDiv.innerHTML = `
+          <span class="attachment-icon">${getFileIcon(file.type)}</span>
+          <div class="attachment-info">
+            <span class="attachment-name">${file.name}</span>
+            <span class="attachment-size">${formatFileSize(file.size)}</span>
+          </div>
+        `;
+      }
+      attachmentsDiv.appendChild(attachmentDiv);
+    });
+    bubbleDiv.appendChild(attachmentsDiv);
+  }
   const messageContent = document.createElement("div");
   messageContent.className = "message-content";
 

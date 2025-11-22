@@ -1802,6 +1802,229 @@ INPUT CONTAINER
 }
 
 /* ========================================
+   FILE UPLOAD STYLES
+   ======================================== */
+.file-preview-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 16px;
+  margin-bottom: 8px;
+  pointer-events: auto;
+}
+
+.file-preview-container:empty {
+  display: none;
+}
+
+.file-preview-item {
+  position: relative;
+  background: rgba(138, 99, 255, 0.1);
+  border: 1px solid rgba(138, 99, 255, 0.3);
+  border-radius: 12px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: fadeIn 0.3s ease-out;
+  max-width: 200px;
+}
+
+.file-preview-item.image-preview {
+  flex-direction: column;
+  padding: 8px;
+}
+
+.file-preview-item.image-preview img {
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.file-preview-item .file-icon {
+  width: 36px;
+  height: 36px;
+  background: rgba(138, 99, 255, 0.2);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.file-preview-item .file-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.file-preview-item .file-name {
+  font-size: 13px;
+  color: #e0e0ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  display: block;
+}
+
+.file-preview-item .file-size {
+  font-size: 11px;
+  color: #64748b;
+  display: block;
+}
+
+.file-preview-item .remove-file-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  background: rgba(239, 68, 68, 0.9);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.file-preview-item .remove-file-btn:hover {
+  background: #ef4444;
+  transform: scale(1.1);
+}
+
+.message-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.message-attachment {
+  background: rgba(20, 25, 45, 0.8);
+  border: 1px solid rgba(138, 99, 255, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.message-attachment.image-attachment img {
+  max-width: 300px;
+  max-height: 200px;
+  object-fit: contain;
+  display: block;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.message-attachment.image-attachment img:hover {
+  transform: scale(1.02);
+}
+
+.message-attachment.file-attachment {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+}
+
+.message-attachment .attachment-icon {
+  font-size: 24px;
+}
+
+.message-attachment .attachment-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.message-attachment .attachment-name {
+  font-size: 13px;
+  color: #e0e0ff;
+  font-weight: 500;
+}
+
+.message-attachment .attachment-size {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.image-lightbox img {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.drag-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(138, 99, 255, 0.1);
+  border: 3px dashed rgba(138, 99, 255, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.drag-overlay-content {
+  text-align: center;
+  color: #a78bfa;
+}
+
+.drag-overlay-content .drag-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.drag-overlay-content p {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/* ========================================
 RESPONSIVE DESIGN
 ======================================== */
 @media (min-width: 901px) {

@@ -391,6 +391,13 @@
                 ></path>
               </svg>
             </button>
+            <input
+              type="file"
+              id="fileInput"
+              multiple
+              accept="image/*,.pdf,.txt,.csv,.json"
+              style="display: none"
+            />
             <textarea
               id="userInput"
               class="message-input"
@@ -433,6 +440,7 @@
               </svg>
             </button>
           </div>
+          <div class="file-preview-container" id="filePreviewContainer"></div>
         </div>
       </div>
     </div>
