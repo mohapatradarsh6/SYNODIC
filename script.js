@@ -1433,9 +1433,27 @@ function displayMessage(text, sender) {
   if (sender === "user") {
     messageContent.textContent = text;
   } else {
-    // Bot message - will be animated after appending to DOM
-    messageContent.setAttribute("data-text", text);
-    messageContent.innerHTML = '<span class="typing-cursor">▋</span>';
+    // Bot message - render markdown directly
+    if (typeof marked !== "undefined") {
+      const rawHtml = marked.parse(text);
+      const cleanHtml =
+        typeof DOMPurify !== "undefined"
+          ? DOMPurify.sanitize(rawHtml)
+          : rawHtml;
+      messageContent.innerHTML = cleanHtml;
+
+      // Apply syntax highlighting
+      if (typeof hljs !== "undefined") {
+        messageContent.querySelectorAll("pre code").forEach((block) => {
+          hljs.highlightElement(block);
+        });
+      }
+
+      // Add copy buttons to code blocks
+      setTimeout(() => addCodeBlockFeatures(messageContent), 100);
+    } else {
+      messageContent.textContent = text;
+    }
   }
   const timestamp = document.createElement("div");
   timestamp.className = "message-timestamp";
@@ -1510,6 +1528,14 @@ function displayMessage(text, sender) {
   messageDiv.appendChild(bubbleDiv);
 
   chatbox.appendChild(messageDiv);
+
+  // Trigger typing animation for bot messages
+  if (sender === "bot") {
+    const textToType = messageContent.getAttribute("data-text");
+    if (textToType) {
+      typeMessage(messageContent, textToType, true);
+    }
+  }
 
   setTimeout(() => {
     messageDiv.scrollIntoView({ behavior: "smooth", block: "end" });
