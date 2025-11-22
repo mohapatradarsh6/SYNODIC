@@ -583,7 +583,7 @@ app.post("/api/chat", authenticateToken, async (req, res) => {
         response = await callGemini(fullMessage, recentHistory);
         break;
       case "huggingface":
-        response = await callHuggingFace(fullMessage,, recentHistory);
+        response = await callHuggingFace(fullMessage, recentHistory); // <-- FIXED
         break;
       default:
         throw new Error("Invalid AI provider configured");
