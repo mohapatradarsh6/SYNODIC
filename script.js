@@ -15,6 +15,17 @@ if (typeof marked !== "undefined") {
     gfm: true, // GitHub Flavored Markdown
     headerIds: false,
     mangle: false,
+    highlight: function (code, lang) {
+      if (typeof hljs !== "undefined") {
+        if (lang && hljs.getLanguage(lang)) {
+          try {
+            return hljs.highlight(code, { language: lang }).value;
+          } catch (err) {}
+        }
+        return hljs.highlightAuto(code).value;
+      }
+      return code;
+    },
   });
 }
 
@@ -1038,6 +1049,94 @@ async function sendMessage() {
     setTimeout(() => welcomeMsg.remove(), 300);
   }
 
+  // Typing animation for bot messages
+  async function typeMessage(element, text, isMarkdown = false) {
+    element.innerHTML = "";
+    element.classList.add("typing");
+
+    if (isMarkdown && typeof marked !== "undefined") {
+      // For markdown, we'll type the raw text then render
+      const tempDiv = document.createElement("div");
+      let currentText = "";
+      const speed = 10; // milliseconds per character
+
+      // Parse the markdown first to get structure
+      const rawHtml = marked.parse(text);
+      const cleanHtml =
+        typeof DOMPurify !== "undefined"
+          ? DOMPurify.sanitize(rawHtml)
+          : rawHtml;
+
+      // Create a temporary element to extract text nodes
+      tempDiv.innerHTML = cleanHtml;
+
+      // For code blocks, type faster
+      const hasCodeBlock = text.includes("```");
+
+      if (hasCodeBlock) {
+        // For messages with code, render immediately but animate opacity
+        element.style.opacity = "0";
+        element.innerHTML = cleanHtml;
+        element.style.transition = "opacity 0.3s ease";
+        element.style.opacity = "1";
+
+        // Add copy buttons to code blocks
+        setTimeout(() => {
+          addCodeBlockFeatures(element);
+        }, 100);
+      } else {
+        // Character by character for regular text
+        for (let i = 0; i < text.length; i++) {
+          currentText += text[i];
+          const partialHtml = marked.parse(currentText);
+          const cleanPartial =
+            typeof DOMPurify !== "undefined"
+              ? DOMPurify.sanitize(partialHtml)
+              : partialHtml;
+          element.innerHTML = cleanPartial;
+
+          // Scroll to keep typing visible
+          element.scrollIntoView({ behavior: "smooth", block: "end" });
+
+          // Variable speed: faster for spaces, slower for punctuation
+          let delay = speed;
+          if (text[i] === " ") delay = speed / 2;
+          if ([".", "!", "?", ","].includes(text[i])) delay = speed * 3;
+
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+    } else {
+      // Plain text typing
+      for (let i = 0; i < text.length; i++) {
+        element.textContent += text[i];
+        await new Promise((resolve) => setTimeout(resolve, 15));
+      }
+    }
+
+    element.classList.remove("typing");
+
+    // Final render with syntax highlighting
+    if (isMarkdown && typeof marked !== "undefined") {
+      const finalHtml = marked.parse(text);
+      const cleanFinal =
+        typeof DOMPurify !== "undefined"
+          ? DOMPurify.sanitize(finalHtml)
+          : finalHtml;
+      element.innerHTML = cleanFinal;
+
+      // Apply syntax highlighting
+      if (typeof hljs !== "undefined") {
+        element.querySelectorAll("pre code").forEach((block) => {
+          hljs.highlightElement(block);
+        });
+      }
+
+      // Add copy buttons to code blocks
+      addCodeBlockFeatures(element);
+    }
+  }
+
   displayMessage(message, "user");
   conversationHistory.push({
     role: "user",
@@ -1153,6 +1252,166 @@ function displaySystemMessage(text) {
 
   chatbox.scrollTop = chatbox.scrollHeight;
 }
+// Typing animation for bot messages
+async function typeMessage(element, text, isMarkdown = false) {
+  element.innerHTML = "";
+  element.classList.add("typing");
+
+  if (isMarkdown && typeof marked !== "undefined") {
+    // For markdown, we'll type the raw text then render
+    const tempDiv = document.createElement("div");
+    let currentText = "";
+    const speed = 10; // milliseconds per character
+
+    // Parse the markdown first to get structure
+    const rawHtml = marked.parse(text);
+    const cleanHtml =
+      typeof DOMPurify !== "undefined" ? DOMPurify.sanitize(rawHtml) : rawHtml;
+
+    // Create a temporary element to extract text nodes
+    tempDiv.innerHTML = cleanHtml;
+
+    // For code blocks, type faster
+    const hasCodeBlock = text.includes("```");
+
+    if (hasCodeBlock) {
+      // For messages with code, render immediately but animate opacity
+      element.style.opacity = "0";
+      element.innerHTML = cleanHtml;
+      element.style.transition = "opacity 0.3s ease";
+      element.style.opacity = "1";
+
+      // Add copy buttons to code blocks
+      setTimeout(() => {
+        addCodeBlockFeatures(element);
+      }, 100);
+    } else {
+      // Character by character for regular text
+      for (let i = 0; i < text.length; i++) {
+        currentText += text[i];
+        const partialHtml = marked.parse(currentText);
+        const cleanPartial =
+          typeof DOMPurify !== "undefined"
+            ? DOMPurify.sanitize(partialHtml)
+            : partialHtml;
+        element.innerHTML = cleanPartial;
+
+        // Scroll to keep typing visible
+        element.scrollIntoView({ behavior: "smooth", block: "end" });
+
+        // Variable speed: faster for spaces, slower for punctuation
+        let delay = speed;
+        if (text[i] === " ") delay = speed / 2;
+        if ([".", "!", "?", ","].includes(text[i])) delay = speed * 3;
+
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  } else {
+    // Plain text typing
+    for (let i = 0; i < text.length; i++) {
+      element.textContent += text[i];
+      await new Promise((resolve) => setTimeout(resolve, 15));
+    }
+  }
+
+  element.classList.remove("typing");
+
+  // Final render with syntax highlighting
+  if (isMarkdown && typeof marked !== "undefined") {
+    const finalHtml = marked.parse(text);
+    const cleanFinal =
+      typeof DOMPurify !== "undefined"
+        ? DOMPurify.sanitize(finalHtml)
+        : finalHtml;
+    element.innerHTML = cleanFinal;
+
+    // Apply syntax highlighting
+    if (typeof hljs !== "undefined") {
+      element.querySelectorAll("pre code").forEach((block) => {
+        hljs.highlightElement(block);
+      });
+    }
+
+    // Add copy buttons to code blocks
+    addCodeBlockFeatures(element);
+  }
+}
+
+// Add copy button and language label to code blocks
+function addCodeBlockFeatures(container) {
+  container.querySelectorAll("pre").forEach((pre) => {
+    // Skip if already processed
+    if (pre.parentElement.classList.contains("code-block-wrapper")) return;
+
+    const code = pre.querySelector("code");
+    if (!code) return;
+
+    // Detect language from class
+    let language = "code";
+    const classes = code.className.split(" ");
+    for (const cls of classes) {
+      if (cls.startsWith("language-")) {
+        language = cls.replace("language-", "");
+        break;
+      } else if (cls.startsWith("hljs-")) {
+        continue;
+      } else if (cls && cls !== "hljs") {
+        language = cls;
+        break;
+      }
+    }
+
+    // Create wrapper
+    const wrapper = document.createElement("div");
+    wrapper.className = "code-block-wrapper";
+
+    // Create header
+    const header = document.createElement("div");
+    header.className = "code-block-header";
+    header.innerHTML = `
+      <span class="code-language">${language}</span>
+      <button class="copy-code-btn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        Copy
+      </button>
+    `;
+
+    // Add copy functionality
+    const copyBtn = header.querySelector(".copy-code-btn");
+    copyBtn.addEventListener("click", () => {
+      const codeText = code.textContent;
+      navigator.clipboard.writeText(codeText).then(() => {
+        copyBtn.innerHTML = `
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Copied!
+        `;
+        copyBtn.classList.add("copied");
+
+        setTimeout(() => {
+          copyBtn.innerHTML = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Copy
+          `;
+          copyBtn.classList.remove("copied");
+        }, 2000);
+      });
+    });
+
+    // Wrap the pre element
+    pre.parentNode.insertBefore(wrapper, pre);
+    wrapper.appendChild(header);
+    wrapper.appendChild(pre);
+  });
+}
 
 function displayMessage(text, sender) {
   const messageDiv = document.createElement("div");
@@ -1168,16 +1427,16 @@ function displayMessage(text, sender) {
 
   const messageContent = document.createElement("div");
   messageContent.className = "message-content";
-  if (sender === "bot" && typeof marked !== "undefined") {
-    // Parse markdown and sanitize HTML
-    const rawHtml = marked.parse(text);
-    const cleanHtml =
-      typeof DOMPurify !== "undefined" ? DOMPurify.sanitize(rawHtml) : rawHtml;
-    messageContent.innerHTML = cleanHtml;
-  } else {
-    messageContent.textContent = text;
-  }
 
+  // For user messages, show immediately
+  // For bot messages, use typing animation
+  if (sender === "user") {
+    messageContent.textContent = text;
+  } else {
+    // Bot message - will be animated after appending to DOM
+    messageContent.setAttribute("data-text", text);
+    messageContent.innerHTML = '<span class="typing-cursor">▋</span>';
+  }
   const timestamp = document.createElement("div");
   timestamp.className = "message-timestamp";
   timestamp.textContent = getCurrentTime();
