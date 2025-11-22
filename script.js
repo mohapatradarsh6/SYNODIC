@@ -877,6 +877,44 @@ function saveSettings() {
   closeSettings();
 }
 
+// Load settings from local storage
+function loadSettings() {
+  // 1. Update Global Variables
+  voiceEnabled = localStorage.getItem("synodic_voice") === "true";
+  autoSpeak = localStorage.getItem("synodic_autospeak") === "true";
+
+  // 2. Update UI Elements (Checkboxes) if the modal is open
+  const voiceToggle = document.getElementById("voiceToggle");
+  const autoSpeakToggle = document.getElementById("autoSpeakToggle");
+
+  if (voiceToggle) voiceToggle.checked = voiceEnabled;
+  if (autoSpeakToggle) autoSpeakToggle.checked = autoSpeak;
+
+  // 3. Apply Theme
+  const savedDarkMode = localStorage.getItem("synodic_darkmode");
+  const isDarkMode = savedDarkMode !== "false"; // Default to true
+
+  if (isDarkMode) {
+    document.body.classList.remove("light-mode");
+  } else {
+    document.body.classList.add("light-mode");
+  }
+
+  // Update the theme icon in the UI
+  updateThemeIcon(!isDarkMode);
+
+  // Update the active state in the settings modal if it exists
+  const themeOptions = document.querySelectorAll(".theme-option");
+  if (themeOptions.length > 0) {
+    themeOptions.forEach((opt) => opt.classList.remove("active"));
+    const activeTheme = isDarkMode ? "dark" : "light";
+    const activeOption = document.querySelector(
+      `.theme-option[data-theme="${activeTheme}"]`
+    );
+    if (activeOption) activeOption.classList.add("active");
+  }
+}
+
 // ========================================
 // MESSAGE HANDLING
 // ========================================
