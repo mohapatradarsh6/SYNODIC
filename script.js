@@ -533,6 +533,33 @@ let isListening = false;
 let isSpeaking = false;
 let voiceEnabled = localStorage.getItem("synodic_voice") === "true";
 let autoSpeak = localStorage.getItem("synodic_autospeak") === "true";
+// Add these new variables
+let typingSpeed = parseInt(localStorage.getItem("synodic_typing_speed")) || 10;
+let soundEnabled = localStorage.getItem("synodic_sound") === "true";
+let richTextEnabled = localStorage.getItem("synodic_richtext") === "true";
+
+// Sound effects (simple beep)
+function playSound(type) {
+  if (!soundEnabled) return;
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+
+  if (type === "send") {
+    oscillator.frequency.value = 800;
+    gainNode.gain.value = 0.1;
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.1);
+  } else if (type === "receive") {
+    oscillator.frequency.value = 600;
+    gainNode.gain.value = 0.08;
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.15);
+  }
+}
 
 // Initialize Speech Recognition
 if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
@@ -767,47 +794,69 @@ function createSettingsModal() {
         <h2>⚙️ Settings</h2>
         <button class="close-btn" onclick="closeSettings()">×</button>
       </div>
-      
       <div class="settings-body">
-        <div class="settings-section">
-          <h3>🎤 Voice Features</h3>
-          <label class="settings-toggle">
-            <input type="checkbox" id="voiceToggle">
-            <span class="toggle-slider"></span>
-            <span class="toggle-label">Enable Voice Interaction</span>
-          </label>
-          
-          <label class="settings-toggle">
-            <input type="checkbox" id="autoSpeakToggle">
-            <span class="toggle-slider"></span>
-            <span class="toggle-label">Auto-speak AI Responses</span>
-          </label>
-          <p class="settings-hint">💡 Click the microphone to speak your messages. AI can read responses aloud.</p>
-        </div>
+  <!-- Voice Settings -->
+  <div class="settings-section">
+    <h3>🎤 Voice Features</h3>
+    <label class="settings-toggle">
+      <input type="checkbox" id="voiceToggle">
+      <span class="toggle-slider"></span>
+      <span class="toggle-label">Enable Voice Interaction</span>
+    </label>
+    <label class="settings-toggle">
+      <input type="checkbox" id="autoSpeakToggle">
+      <span class="toggle-slider"></span>
+      <span class="toggle-label">Auto-speak AI Responses</span>
+    </label>
+  </div>
 
-        <div class="settings-section">
-          <h3>🎨 Appearance</h3>
-          <div class="theme-toggle-container" id="themeToggleContainer">
-            <div class="theme-option ${
-              isDarkMode ? "active" : ""
-            }" data-theme="dark">
-              <span class="theme-icon">🌙</span>
-              <span class="theme-label">Dark Mode</span>
-            </div>
-            <div class="theme-option ${
-              !isDarkMode ? "active" : ""
-            }" data-theme="light">
-              <span class="theme-icon">☀️</span>
-              <span class="theme-label">Light Mode</span>
-            </div>
-          </div>
-        </div>
+  <!-- NEW: Typing Speed -->
+  <div class="settings-section">
+    <h3>⚡ Typing Animation Speed</h3>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <input type="range" id="typingSpeedSlider" min="1" max="50" value="10" 
+        style="flex: 1; height: 6px; border-radius: 3px; background: rgba(138, 99, 255, 0.2);">
+      <span id="typingSpeedValue" style="color: #a78bfa; min-width: 60px;">10 ms</span>
+    </div>
+    <p class="settings-hint">💡 Lower = Faster typing animation</p>
+  </div>
 
-        <div class="settings-section">
-          <h3>ℹ️ About</h3>
-          <p class="settings-hint">Synodic AI v4.5 - Powered by advanced AI<br>Secure authentication enabled</p>
-        </div>
-      </div>
+  <!-- NEW: Sound Effects -->
+  <div class="settings-section">
+    <h3>🔊 Sound Effects</h3>
+    <label class="settings-toggle">
+      <input type="checkbox" id="soundToggle">
+      <span class="toggle-slider"></span>
+      <span class="toggle-label">Enable Sound Effects</span>
+    </label>
+    <p class="settings-hint">💡 Hear sounds when sending messages</p>
+  </div>
+
+  <!-- NEW: Rich Text Editor -->
+  <div class="settings-section">
+    <h3>📝 Rich Text Input</h3>
+    <label class="settings-toggle">
+      <input type="checkbox" id="richTextToggle">
+      <span class="toggle-slider"></span>
+      <span class="toggle-label">Enable Rich Text Formatting</span>
+    </label>
+    <p class="settings-hint">💡 Format your messages with bold, italic, etc.</p>
+  </div>
+
+  <!-- Appearance -->
+  <div class="settings-section">
+    <h3>🎨 Appearance</h3>
+    <div class="theme-toggle-container" id="themeToggleContainer">
+      <!-- existing theme toggle code -->
+    </div>
+  </div>
+
+  <!-- About -->
+  <div class="settings-section">
+    <h3>ℹ️ About</h3>
+    <p class="settings-hint">Synodic AI v4.5 - Powered by advanced AI<br>Secure authentication enabled</p>
+  </div>
+</div>
 
       <div class="settings-footer">
         <button class="settings-btn secondary" onclick="closeSettings()">Cancel</button>
@@ -825,7 +874,13 @@ function createSettingsModal() {
       option.classList.add("active");
     });
   });
-
+  const typingSpeedSlider = modal.querySelector("#typingSpeedSlider");
+  const typingSpeedValue = modal.querySelector("#typingSpeedValue");
+  if (typingSpeedSlider && typingSpeedValue) {
+    typingSpeedSlider.addEventListener("input", (e) => {
+      typingSpeedValue.textContent = e.target.value + " ms";
+    });
+  }
   loadSettings();
 }
 
@@ -846,23 +901,32 @@ function closeSettings() {
     modal.classList.remove("active");
   }
 }
-
 function saveSettings() {
   const voiceToggle = document.getElementById("voiceToggle").checked;
   const autoSpeakToggle = document.getElementById("autoSpeakToggle").checked;
+  const typingSpeedSlider = document.getElementById("typingSpeedSlider").value;
+  const soundToggle = document.getElementById("soundToggle").checked;
+  const richTextToggle = document.getElementById("richTextToggle").checked;
 
-  // Get selected theme from the theme options
   const selectedTheme = document.querySelector(".theme-option.active");
   const isDarkMode = selectedTheme
     ? selectedTheme.dataset.theme === "dark"
     : true;
 
+  // Save all settings
   localStorage.setItem("synodic_voice", voiceToggle);
   localStorage.setItem("synodic_autospeak", autoSpeakToggle);
+  localStorage.setItem("synodic_typing_speed", typingSpeedSlider);
+  localStorage.setItem("synodic_sound", soundToggle);
+  localStorage.setItem("synodic_richtext", richTextToggle);
   localStorage.setItem("synodic_darkmode", isDarkMode);
 
+  // Update global variables
   voiceEnabled = voiceToggle;
   autoSpeak = autoSpeakToggle;
+  typingSpeed = parseInt(typingSpeedSlider);
+  soundEnabled = soundToggle;
+  richTextEnabled = richTextToggle;
 
   // Apply theme
   if (isDarkMode) {
@@ -872,6 +936,7 @@ function saveSettings() {
   }
 
   updateVoiceButtonState();
+  updateInputMode(); // New function for rich text
 
   displaySystemMessage("✅ Settings saved successfully!");
   closeSettings();
@@ -879,18 +944,28 @@ function saveSettings() {
 
 // Load settings from local storage
 function loadSettings() {
-  // 1. Update Global Variables
   voiceEnabled = localStorage.getItem("synodic_voice") === "true";
   autoSpeak = localStorage.getItem("synodic_autospeak") === "true";
+  typingSpeed = parseInt(localStorage.getItem("synodic_typing_speed")) || 10;
+  soundEnabled = localStorage.getItem("synodic_sound") === "true";
+  richTextEnabled = localStorage.getItem("synodic_richtext") === "true";
 
-  // 2. Update UI Elements (Checkboxes) if the modal is open
   const voiceToggle = document.getElementById("voiceToggle");
   const autoSpeakToggle = document.getElementById("autoSpeakToggle");
+  const typingSpeedSlider = document.getElementById("typingSpeedSlider");
+  const typingSpeedValue = document.getElementById("typingSpeedValue");
+  const soundToggle = document.getElementById("soundToggle");
+  const richTextToggle = document.getElementById("richTextToggle");
 
   if (voiceToggle) voiceToggle.checked = voiceEnabled;
   if (autoSpeakToggle) autoSpeakToggle.checked = autoSpeak;
+  if (typingSpeedSlider) {
+    typingSpeedSlider.value = typingSpeed;
+    if (typingSpeedValue) typingSpeedValue.textContent = typingSpeed + " ms";
+  }
+  if (soundToggle) soundToggle.checked = soundEnabled;
+  if (richTextToggle) richTextToggle.checked = richTextEnabled;
 
-  // 3. Apply Theme
   const savedDarkMode = localStorage.getItem("synodic_darkmode");
   const isDarkMode = savedDarkMode !== "false"; // Default to true
 
@@ -900,10 +975,8 @@ function loadSettings() {
     document.body.classList.add("light-mode");
   }
 
-  // Update the theme icon in the UI
   updateThemeIcon(!isDarkMode);
 
-  // Update the active state in the settings modal if it exists
   const themeOptions = document.querySelectorAll(".theme-option");
   if (themeOptions.length > 0) {
     themeOptions.forEach((opt) => opt.classList.remove("active"));
@@ -920,6 +993,180 @@ function loadSettings() {
 // ========================================
 
 let conversationHistory = [];
+
+// ========================================
+// CHAT HISTORY PERSISTENCE
+// ========================================
+let chatSessions = JSON.parse(localStorage.getItem("synodic_chats")) || [];
+let currentChatId = localStorage.getItem("synodic_current_chat") || null;
+
+function saveCurrentChat() {
+  if (!currentChatId) {
+    currentChatId = Date.now().toString();
+  }
+
+  const chatData = {
+    id: currentChatId,
+    title: getConversationTitle(),
+    messages: conversationHistory,
+    lastModified: Date.now(),
+    createdAt:
+      chatSessions.find((c) => c.id === currentChatId)?.createdAt || Date.now(),
+  };
+
+  // Update or add chat
+  const index = chatSessions.findIndex((c) => c.id === currentChatId);
+  if (index !== -1) {
+    chatSessions[index] = chatData;
+  } else {
+    chatSessions.unshift(chatData);
+  }
+
+  // Keep only last 50 chats
+  if (chatSessions.length > 50) {
+    chatSessions = chatSessions.slice(0, 50);
+  }
+
+  localStorage.setItem("synodic_chats", JSON.stringify(chatSessions));
+  localStorage.setItem("synodic_current_chat", currentChatId);
+
+  updateChatHistorySidebar();
+}
+
+function getConversationTitle() {
+  if (conversationHistory.length === 0) return "New Chat";
+  const firstMessage = conversationHistory.find((m) => m.role === "user");
+  return firstMessage ? firstMessage.content.slice(0, 40) + "..." : "New Chat";
+}
+
+function loadChat(chatId) {
+  const chat = chatSessions.find((c) => c.id === chatId);
+  if (!chat) return;
+
+  currentChatId = chatId;
+  conversationHistory = chat.messages;
+
+  // Clear chatbox
+  chatbox.innerHTML = "";
+
+  // Display all messages
+  conversationHistory.forEach((msg) => {
+    displayMessage(msg.content, msg.role);
+  });
+
+  localStorage.setItem("synodic_current_chat", chatId);
+  updateChatHistorySidebar();
+}
+
+function updateChatHistorySidebar() {
+  const historyContainer = document.querySelector(".chat-history");
+  if (!historyContainer) return;
+
+  const today = [];
+  const yesterday = [];
+  const older = [];
+
+  const now = Date.now();
+  const oneDayAgo = now - 24 * 60 * 60 * 1000;
+  const twoDaysAgo = now - 48 * 60 * 60 * 1000;
+
+  chatSessions.forEach((chat) => {
+    if (chat.lastModified > oneDayAgo) {
+      today.push(chat);
+    } else if (chat.lastModified > twoDaysAgo) {
+      yesterday.push(chat);
+    } else {
+      older.push(chat);
+    }
+  });
+
+  let html = "";
+
+  if (today.length > 0) {
+    html += '<div class="history-section"><h3>Today</h3>';
+    today.forEach((chat) => {
+      html += `<div class="history-item ${
+        chat.id === currentChatId ? "active" : ""
+      }" onclick="loadChat('${chat.id}')">
+        <span>${chat.title}</span>
+      </div>`;
+    });
+    html += "</div>";
+  }
+
+  if (yesterday.length > 0) {
+    html += '<div class="history-section"><h3>Yesterday</h3>';
+    yesterday.forEach((chat) => {
+      html += `<div class="history-item ${
+        chat.id === currentChatId ? "active" : ""
+      }" onclick="loadChat('${chat.id}')">
+        <span>${chat.title}</span>
+      </div>`;
+    });
+    html += "</div>";
+  }
+
+  if (older.length > 0) {
+    html += '<div class="history-section"><h3>Previous 7 Days</h3>';
+    older.forEach((chat) => {
+      html += `<div class="history-item ${
+        chat.id === currentChatId ? "active" : ""
+      }" onclick="loadChat('${chat.id}')">
+        <span>${chat.title}</span>
+      </div>`;
+    });
+    html += "</div>";
+  }
+
+  historyContainer.innerHTML = html;
+}
+// Search functionality
+const searchChatsInput = document.getElementById("searchChats");
+if (searchChatsInput) {
+  searchChatsInput.addEventListener("input", (e) => {
+    const query = e.target.value.toLowerCase();
+
+    if (!query) {
+      updateChatHistorySidebar();
+      return;
+    }
+
+    const filtered = chatSessions.filter(
+      (chat) =>
+        chat.title.toLowerCase().includes(query) ||
+        chat.messages.some((m) => m.content.toLowerCase().includes(query))
+    );
+
+    const historyContainer = document.querySelector(".chat-history");
+    if (!historyContainer) return;
+
+    let html = '<div class="history-section"><h3>Search Results</h3>';
+
+    if (filtered.length === 0) {
+      html +=
+        '<p style="padding: 12px; color: #64748b; font-size: 14px;">No chats found</p>';
+    } else {
+      filtered.forEach((chat) => {
+        html += `<div class="history-item ${
+          chat.id === currentChatId ? "active" : ""
+        }" onclick="loadChat('${chat.id}')">
+          <span>${chat.title}</span>
+        </div>`;
+      });
+    }
+
+    html += "</div>";
+    historyContainer.innerHTML = html;
+  });
+}
+// Make loadChat available globally
+window.loadChat = loadChat;
+
+// Auto-save after each message
+// Add this to your sendMessage function after displaying bot response
+// Add after line ~1150 where you do: conversationHistory.push({ role: "assistant", content: data.response });
+saveCurrentChat();
+
 // ========================================
 // FILE UPLOAD STATE
 // ========================================
@@ -946,6 +1193,31 @@ function initializeChatApp() {
   // Event Listeners
   if (sendBtn) {
     sendBtn.addEventListener("click", sendMessage);
+  }
+
+  // Rich Text Toolbar Event Listeners
+  const richTextToolbar = document.getElementById("richTextToolbar");
+  if (richTextToolbar) {
+    richTextToolbar.addEventListener("click", (e) => {
+      const btn = e.target.closest(".toolbar-btn");
+      if (!btn) return;
+
+      const format = btn.dataset.format;
+      if (format) {
+        applyFormat(format);
+      }
+    });
+
+    const emojiBtn = document.getElementById("emojiPickerBtn");
+    if (emojiBtn) {
+      emojiBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        showEmojiPicker();
+      });
+    }
+
+    // Initialize visibility
+    updateInputMode();
   }
 
   // Export Chat Button
@@ -999,11 +1271,14 @@ function initializeChatApp() {
 
   if (newChatBtn) {
     newChatBtn.addEventListener("click", () => {
-      if (confirm("Start a new chat? Current conversation will be cleared.")) {
-        conversationHistory = [];
-        stopSpeaking();
+      if (conversationHistory.length > 0) {
+        if (confirm("Start a new chat? Current conversation will be saved.")) {
+          saveCurrentChat(); // Save current before creating new
+          currentChatId = null; // Reset to create new chat
+          conversationHistory = [];
+          stopSpeaking();
 
-        chatbox.innerHTML = `
+          chatbox.innerHTML = `
           <div class="welcome-message">
             <div class="welcome-icon">🌙</div>
             <h2>Welcome to Synodic AI</h2>
@@ -1011,9 +1286,14 @@ function initializeChatApp() {
           </div>
         `;
 
-        sidebar.classList.remove("active");
-        overlay.classList.remove("active");
-        userInput.focus();
+          sidebar.classList.remove("active");
+          overlay.classList.remove("active");
+          userInput.focus();
+          updateChatHistorySidebar();
+        }
+      } else {
+        currentChatId = null;
+        updateChatHistorySidebar();
       }
     });
   }
@@ -1045,6 +1325,106 @@ function initializeChatApp() {
   }
 
   fixMobileViewport();
+
+  // Load chat history
+  updateChatHistorySidebar();
+
+  // Load last active chat if exists
+  if (currentChatId) {
+    loadChat(currentChatId);
+  }
+}
+
+// Rich Text Editor Functions
+function updateInputMode() {
+  const toolbar = document.getElementById("richTextToolbar");
+  if (toolbar) {
+    toolbar.style.display = richTextEnabled ? "flex" : "none";
+  }
+}
+
+function applyFormat(format) {
+  const input = document.getElementById("userInput");
+  const start = input.selectionStart;
+  const end = input.selectionEnd;
+  const selectedText = input.value.substring(start, end);
+
+  let formattedText = selectedText;
+
+  switch (format) {
+    case "bold":
+      formattedText = `**${selectedText}**`;
+      break;
+    case "italic":
+      formattedText = `*${selectedText}*`;
+      break;
+    case "code":
+      formattedText = `\`${selectedText}\``;
+      break;
+  }
+
+  input.value =
+    input.value.substring(0, start) +
+    formattedText +
+    input.value.substring(end);
+  input.focus();
+  input.setSelectionRange(
+    start + formattedText.length,
+    start + formattedText.length
+  );
+}
+
+// Emoji Picker (Simple Version)
+function showEmojiPicker() {
+  const emojis = [
+    "😊",
+    "😂",
+    "❤️",
+    "👍",
+    "🎉",
+    "🔥",
+    "✨",
+    "💯",
+    "🚀",
+    "💡",
+    "🤔",
+    "😎",
+    "🙌",
+    "👏",
+    "🎯",
+  ];
+
+  const picker = document.createElement("div");
+  picker.className = "emoji-picker";
+  picker.innerHTML = emojis
+    .map((e) => `<span class="emoji-item">${e}</span>`)
+    .join("");
+
+  const btn = document.getElementById("emojiPickerBtn");
+  const rect = btn.getBoundingClientRect();
+  picker.style.position = "absolute";
+  picker.style.bottom = "60px";
+  picker.style.left = rect.left + "px";
+
+  document.body.appendChild(picker);
+
+  picker.querySelectorAll(".emoji-item").forEach((item) => {
+    item.addEventListener("click", () => {
+      const input = document.getElementById("userInput");
+      input.value += item.textContent;
+      input.focus();
+      picker.remove();
+    });
+  });
+
+  setTimeout(() => {
+    document.addEventListener("click", function closeEmojiPicker(e) {
+      if (!picker.contains(e.target) && e.target !== btn) {
+        picker.remove();
+        document.removeEventListener("click", closeEmojiPicker);
+      }
+    });
+  }, 100);
 }
 
 // Update theme toggle icon
@@ -1609,7 +1989,7 @@ async function sendMessage() {
       // For markdown, we'll type the raw text then render
       const tempDiv = document.createElement("div");
       let currentText = "";
-      const speed = 10; // milliseconds per character
+      const speed = typingSpeed; // Use user's preferred speed
 
       // Parse the markdown first to get structure
       const rawHtml = marked.parse(text);
@@ -1690,6 +2070,7 @@ async function sendMessage() {
   }
 
   displayMessage(message, "user", filesToSend);
+  playSound("send");
   conversationHistory.push({
     role: "user",
     content: message,
@@ -1734,6 +2115,7 @@ async function sendMessage() {
 
     hideThinking();
     displayMessage(data.response, "bot");
+    playSound("receive");
     conversationHistory.push({ role: "assistant", content: data.response });
 
     if (autoSpeak && voiceEnabled) {

@@ -261,6 +261,25 @@
           New Chat
         </button>
 
+        <!-- Add this right after the New Chat button -->
+        <div style="padding: 0 16px; margin-bottom: 16px">
+          <input
+            type="text"
+            id="searchChats"
+            placeholder="🔍 Search chats..."
+            style="
+              width: 100%;
+              padding: 10px 12px;
+              background: rgba(20, 25, 45, 0.8);
+              border: 2px solid rgba(138, 99, 255, 0.2);
+              border-radius: 10px;
+              color: #e0e0ff;
+              font-size: 14px;
+              font-family: inherit;
+            "
+          />
+        </div>
+
         <button
           class="new-chat-btn"
           id="exportChatBtn"
@@ -407,6 +426,51 @@
               accept="image/*,.pdf,.txt,.csv,.json"
               style="display: none"
             />
+            <!-- Add this BEFORE the textarea -->
+            <div
+              class="rich-text-toolbar"
+              id="richTextToolbar"
+              style="display: none"
+            >
+              <button class="toolbar-btn" data-format="bold" title="Bold">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"
+                  />
+                </svg>
+              </button>
+              <button class="toolbar-btn" data-format="italic" title="Italic">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
+                  <path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z" />
+                </svg>
+              </button>
+              <button class="toolbar-btn" data-format="code" title="Code">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <polyline points="16 18 22 12 16 6"></polyline>
+                  <polyline points="8 6 2 12 8 18"></polyline>
+                </svg>
+              </button>
+              <button class="toolbar-btn" id="emojiPickerBtn" title="Emoji">
+                😊
+              </button>
+            </div>
             <textarea
               id="userInput"
               class="message-input"
