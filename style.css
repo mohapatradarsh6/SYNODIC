@@ -2577,8 +2577,8 @@ RESPONSIVE DESIGN
     padding: 16px;
     padding-top: 16px; /* Remove extra top padding on mobile */
     padding-bottom: 180px; /* Space for input */
-    height: calc(100vh - 56px - 80px); /* viewport - header - input */
-    height: calc(100dvh - 56px - 80px);
+    min-height: calc(100vh - 56px);
+    min-height: calc(100dvh - 56px);
     overflow-y: auto;
     overflow-x: hidden;
   }

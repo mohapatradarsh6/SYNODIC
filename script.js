@@ -1749,6 +1749,11 @@ async function sendMessage() {
             top: chatbox.scrollHeight,
             behavior: "smooth",
           });
+
+          // Force scroll again after a short delay for mobile
+          setTimeout(() => {
+            chatbox.scrollTop = chatbox.scrollHeight;
+          }, 100);
         }
       }, 150);
     });
@@ -2125,6 +2130,11 @@ function displayMessage(text, sender, attachments = []) {
           top: chatbox.scrollHeight,
           behavior: "smooth",
         });
+
+        // Force scroll on mobile after animation completes
+        setTimeout(() => {
+          chatbox.scrollTop = chatbox.scrollHeight;
+        }, 300);
       }
     }, 100);
   });
