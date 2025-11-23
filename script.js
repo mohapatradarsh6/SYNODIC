@@ -795,68 +795,67 @@ function createSettingsModal() {
         <button class="close-btn" onclick="closeSettings()">×</button>
       </div>
       <div class="settings-body">
-  <!-- Voice Settings -->
-  <div class="settings-section">
-    <h3>🎤 Voice Features</h3>
-    <label class="settings-toggle">
-      <input type="checkbox" id="voiceToggle">
-      <span class="toggle-slider"></span>
-      <span class="toggle-label">Enable Voice Interaction</span>
-    </label>
-    <label class="settings-toggle">
-      <input type="checkbox" id="autoSpeakToggle">
-      <span class="toggle-slider"></span>
-      <span class="toggle-label">Auto-speak AI Responses</span>
-    </label>
-  </div>
+        <div class="settings-section">
+          <h3>🎤 Voice Features</h3>
+          <label class="settings-toggle">
+            <input type="checkbox" id="voiceToggle">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Enable Voice Interaction</span>
+          </label>
+          <label class="settings-toggle">
+            <input type="checkbox" id="autoSpeakToggle">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Auto-speak AI Responses</span>
+          </label>
+        </div>
 
-  <!-- NEW: Typing Speed -->
-  <div class="settings-section">
-    <h3>⚡ Typing Animation Speed</h3>
-    <div style="display: flex; align-items: center; gap: 12px;">
-      <input type="range" id="typingSpeedSlider" min="1" max="50" value="10" 
-        style="flex: 1; height: 6px; border-radius: 3px; background: rgba(138, 99, 255, 0.2);">
-      <span id="typingSpeedValue" style="color: #a78bfa; min-width: 60px;">10 ms</span>
-    </div>
-    <p class="settings-hint">💡 Lower = Faster typing animation</p>
-  </div>
+        <div class="settings-section">
+          <h3>⚡ Typing Animation Speed</h3>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <input type="range" id="typingSpeedSlider" min="1" max="50" value="10" 
+              style="flex: 1; height: 6px; border-radius: 3px; background: rgba(138, 99, 255, 0.2);">
+            <span id="typingSpeedValue" style="color: #a78bfa; min-width: 60px;">10 ms</span>
+          </div>
+          <p class="settings-hint">💡 Lower = Faster typing animation</p>
+        </div>
 
-  <!-- NEW: Sound Effects -->
-  <div class="settings-section">
-    <h3>🔊 Sound Effects</h3>
-    <label class="settings-toggle">
-      <input type="checkbox" id="soundToggle">
-      <span class="toggle-slider"></span>
-      <span class="toggle-label">Enable Sound Effects</span>
-    </label>
-    <p class="settings-hint">💡 Hear sounds when sending messages</p>
-  </div>
+        <div class="settings-section">
+          <h3>🔊 Sound Effects</h3>
+          <label class="settings-toggle">
+            <input type="checkbox" id="soundToggle">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Enable Sound Effects</span>
+          </label>
+        </div>
 
-  <!-- NEW: Rich Text Editor -->
-  <div class="settings-section">
-    <h3>📝 Rich Text Input</h3>
-    <label class="settings-toggle">
-      <input type="checkbox" id="richTextToggle">
-      <span class="toggle-slider"></span>
-      <span class="toggle-label">Enable Rich Text Formatting</span>
-    </label>
-    <p class="settings-hint">💡 Format your messages with bold, italic, etc.</p>
-  </div>
+        <div class="settings-section">
+          <h3>📝 Rich Text Input</h3>
+          <label class="settings-toggle">
+            <input type="checkbox" id="richTextToggle">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Enable Rich Text Formatting</span>
+          </label>
+        </div>
 
-  <!-- Appearance -->
-  <div class="settings-section">
-    <h3>🎨 Appearance</h3>
-    <div class="theme-toggle-container" id="themeToggleContainer">
-      <!-- existing theme toggle code -->
-    </div>
-  </div>
+        <div class="settings-section">
+          <h3>🎨 Appearance</h3>
+          <div class="theme-toggle-container" id="themeToggleContainer">
+             <div class="theme-option" data-theme="dark">
+                <div class="theme-icon">🌙</div>
+                <div class="theme-label">Dark Mode</div>
+             </div>
+             <div class="theme-option" data-theme="light">
+                <div class="theme-icon">☀️</div>
+                <div class="theme-label">Light Mode</div>
+             </div>
+          </div>
+        </div>
 
-  <!-- About -->
-  <div class="settings-section">
-    <h3>ℹ️ About</h3>
-    <p class="settings-hint">Synodic AI v4.5 - Powered by advanced AI<br>Secure authentication enabled</p>
-  </div>
-</div>
+        <div class="settings-section">
+          <h3>ℹ️ About</h3>
+          <p class="settings-hint">Synodic AI v4.5 - Powered by advanced AI<br>Secure authentication enabled</p>
+        </div>
+      </div>
 
       <div class="settings-footer">
         <button class="settings-btn secondary" onclick="closeSettings()">Cancel</button>
@@ -864,9 +863,10 @@ function createSettingsModal() {
       </div>
     </div>
   `;
+
   document.body.appendChild(modal);
 
-  // Add theme toggle click handlers
+  // Add click listeners for the theme options we just added
   const themeOptions = modal.querySelectorAll(".theme-option");
   themeOptions.forEach((option) => {
     option.addEventListener("click", () => {
@@ -874,6 +874,7 @@ function createSettingsModal() {
       option.classList.add("active");
     });
   });
+
   const typingSpeedSlider = modal.querySelector("#typingSpeedSlider");
   const typingSpeedValue = modal.querySelector("#typingSpeedValue");
   if (typingSpeedSlider && typingSpeedValue) {
@@ -1049,10 +1050,21 @@ function loadChat(chatId) {
   // Clear chatbox
   chatbox.innerHTML = "";
 
-  // Display all messages
-  conversationHistory.forEach((msg) => {
-    displayMessage(msg.content, msg.role);
-  });
+  // CHECK: If history is empty, show Welcome Message
+  if (conversationHistory.length === 0) {
+    chatbox.innerHTML = `
+      <div class="welcome-message">
+        <div class="welcome-icon">🌙</div>
+        <h2>Welcome to Synodic AI</h2>
+        <p>Your cosmic companion for intelligent conversations</p>
+      </div>
+    `;
+  } else {
+    // Display all messages
+    conversationHistory.forEach((msg) => {
+      displayMessage(msg.content, msg.role);
+    });
+  }
 
   localStorage.setItem("synodic_current_chat", chatId);
   updateChatHistorySidebar();
@@ -1272,12 +1284,14 @@ function initializeChatApp() {
   if (newChatBtn) {
     newChatBtn.addEventListener("click", () => {
       if (conversationHistory.length > 0) {
+        // Only ask to confirm if the current chat actually has messages
         if (confirm("Start a new chat? Current conversation will be saved.")) {
-          saveCurrentChat(); // Save current before creating new
-          currentChatId = null; // Reset to create new chat
+          saveCurrentChat();
+          currentChatId = Date.now().toString(); // Generate new ID immediately
           conversationHistory = [];
           stopSpeaking();
 
+          // INJECT WELCOME MESSAGE HERE
           chatbox.innerHTML = `
           <div class="welcome-message">
             <div class="welcome-icon">🌙</div>
@@ -1292,7 +1306,16 @@ function initializeChatApp() {
           updateChatHistorySidebar();
         }
       } else {
-        currentChatId = null;
+        // If current chat is empty, just reset
+        currentChatId = Date.now().toString();
+        conversationHistory = [];
+        chatbox.innerHTML = `
+          <div class="welcome-message">
+            <div class="welcome-icon">🌙</div>
+            <h2>Welcome to Synodic AI</h2>
+            <p>Your cosmic companion for intelligent conversations</p>
+          </div>
+        `;
         updateChatHistorySidebar();
       }
     });
